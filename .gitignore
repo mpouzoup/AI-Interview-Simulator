@@ -427,3 +427,10 @@ FodyWeavers.xsd
 *.msix
 *.msm
 *.msp
+
+# ==========================================
+# JetBrains Rider & WebStorm overrides
+# ==========================================
+.idea/
+*.sln.iml
+*.csproj.iml
