@@ -1,7 +1,165 @@
 ﻿@page "/"
+@using AI_Interview_Simulator.Engine
+@inject IJSRuntime JSRuntime
 
-<PageTitle>Home</PageTitle>
+<PageTitle>Interview Simulator</PageTitle>
 
-<h1>Hello, world!</h1>
+<MudContainer MaxWidth="MaxWidth.Medium" Class="mt-6">
+    <MudText Typo="Typo.h5" Align="Align.Left" Style="color: #111111; font-weight: 600; margin-bottom: 8px;">
+        Προσομοίωση Συνέντευξης Εργασίας
+    </MudText>
+    <MudText Typo="Typo.body2" Class="mb-6" Style="color: #5c5c5c;">
+        Απαντήστε στις ερωτήσεις του εξεταστή όπως θα κάνατε σε μια πραγματική συνέντευξη. Η διαδικασία αποτελείται από 7 στάδια.
+    </MudText>
 
-Welcome to your new app.
+    <!-- Κεντρικό Παράθυρο Διαλόγου -->
+    <MudPaper Elevation="1" id="chat-container" Style="background-color: #ffffff; border: 1px solid #e0e0e0; height: 480px; overflow-y: auto; padding: 24px; border-radius: 6px;">
+        <div style="display: flex; flex-direction: column; gap: 20px;">
+            @foreach (var msg in chatMessages)
+            {
+                var isUser = msg.IsUser;
+                <div style="display: flex; justify-content: @(isUser ? "flex-end" : "flex-start"); align-items: flex-start; gap: 12px;">
+                    
+                    @if (!isUser)
+                    {
+                        <MudAvatar Color="Color.Primary" Variant="Variant.Filled" Size="Size.Small" Style="background-color: #0067b8;">
+                            <MudIcon Icon="@Icons.Material.Filled.SupportAgent" />
+                        </MudAvatar>
+                    }
+
+                    <div style="background-color: @(isUser ? "#eff6ff" : "#f3f4f6"); 
+                                color: #242424; 
+                                border: 1px solid @(isUser ? "#bfdbfe" : "#e5e7eb");
+                                padding: 12px 16px; 
+                                border-radius: 8px; 
+                                max-width: 80%; 
+                                font-size: 15px;
+                                line-height: 1.5;">
+                        <span style="font-weight: 600; display: block; margin-bottom: 4px; font-size: 11px; color: @(isUser ? "#1e40af" : "#5c5c5c"); letter-spacing: 0.3px;">
+                            @(isUser ? "Η ΑΠΑΝΤΗΣΗ ΣΑΣ" : "ΕΞΕΤΑΣΤΗΣ")
+                        </span>
+                        @msg.Text
+                    </div>
+
+                    @if (isUser)
+                    {
+                        <MudAvatar Color="Color.Default" Variant="Variant.Outlined" Size="Size.Small" Style="border: 1px solid #b9b9b9; background-color: #ffffff; color: #5c5c5c;">
+                            <MudIcon Icon="@Icons.Material.Filled.Person" />
+                        </MudAvatar>
+                    }
+                </div>
+            }
+
+            <!-- Ένδειξη Πληκτρολόγησης (Typing Indicator) -->
+            @if (isBotTyping)
+            {
+                <div style="display: flex; justify-content: flex-start; align-items: center; gap: 12px;">
+                    <MudAvatar Color="Color.Primary" Variant="Variant.Filled" Size="Size.Small" Style="background-color: #0067b8;">
+                        <MudIcon Icon="@Icons.Material.Filled.SupportAgent" />
+                    </MudAvatar>
+                    <MudText Typo="Typo.caption" Style="color: #5c5c5c; font-style: italic;">
+                        Ο εξεταστής πληκτρολογεί...
+                    </MudText>
+                </div>
+            }
+        </div>
+    </MudPaper>
+
+    <!-- Περιοχή Εισαγωγής Κειμένου -->
+    <div Class="mt-4" style="display: flex; gap: 12px; align-items: flex-start;">
+        @if (!engine.IsInterviewFinished())
+        {
+            <MudTextField @bind-Value="userInput" 
+                          Label="Πληκτρολογήστε το μήνυμά σας..." 
+                          Variant="Variant.Outlined" 
+                          Clearable="true"
+                          OnKeyDown="HandleKeyDown"
+                          Immediate="true"
+                          Margin="Margin.Dense"
+                          Disabled="@isBotTyping"
+                          Style="background-color: #ffffff;" />
+                          
+            <MudButton Variant="Variant.Filled" 
+                       Color="Color.Primary" 
+                       OnClick="SendMessage" 
+                       Disabled="@(string.IsNullOrWhiteSpace(userInput) || isBotTyping)"
+                       EndIcon="@Icons.Material.Filled.ArrowUpward"
+                       Style="height: 40px; background-color: #0067b8; font-weight: 500; border-radius: 4px; text-transform: none;">
+                Αποστολή
+            </MudButton>
+        }
+        else
+        {
+            <MudAlert Severity="Severity.Success" Variant="Variant.Outlined" Class="w-100" Style="border-radius: 4px; background-color: #f0fdf4; color: #166534; border: 1px solid #bbf7d0;">
+                Η προσομοίωση συνέντευξης ολοκληρώθηκε. Σας ευχαριστούμε για τη συμμετοχή σας στην έρευνα.
+            </MudAlert>
+        }
+    </div>
+</MudContainer>
+
+@code {
+    private IInterviewEngine engine = new ScriptBasedEngine();
+    private string userInput = "";
+    private List<ChatMessage> chatMessages = new List<ChatMessage>();
+    
+    // Μεταβλητή κατάστασης για την ένδειξη πληκτρολόγησης
+    private bool isBotTyping = false;
+
+    protected override void OnInitialized()
+    {
+        chatMessages.Add(new ChatMessage { Text = engine.GetCurrentPrompt(), IsUser = false });
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        await JSRuntime.InvokeVoidAsync("eval", "var el = document.getElementById('chat-container'); if(el) { el.scrollTop = el.scrollHeight; }");
+    }
+
+    // Μετατροπή σε async Task για να υποστηρίζει την καθυστέρηση
+    private async Task SendMessage()
+    {
+        if (string.IsNullOrWhiteSpace(userInput) || isBotTyping) return;
+
+        // 1. Εμφάνιση απάντησης χρήστη
+        chatMessages.Add(new ChatMessage { Text = userInput, IsUser = true });
+        
+        var responseToSend = userInput;
+        userInput = "";
+        
+        // Ενεργοποίηση ένδειξης πληκτρολόγησης
+        isBotTyping = true;
+        StateHasChanged(); // Επανασχεδιασμός UI για να φανεί το "Ο εξεταστής πληκτρολογεί..."
+
+        // 2. Τεχνητή καθυστέρηση 1.5 δευτερολέπτου για ρεαλισμό
+        await Task.Delay(1500);
+
+        // 3. Επεξεργασία και λήψη Feedback
+        engine.ProcessUserResponse(responseToSend, 0); 
+        chatMessages.Add(new ChatMessage { Text = engine.GetCurrentPrompt(), IsUser = false });
+        
+        // Προχωράμε στο επόμενο στάδιο
+        engine.ProcessUserResponse("", 0); 
+        
+        if (!engine.IsInterviewFinished())
+        {
+            chatMessages.Add(new ChatMessage { Text = engine.GetCurrentPrompt(), IsUser = false });
+        }
+
+        // Απενεργοποίηση ένδειξης πληκτρολόγησης
+        isBotTyping = false;
+    }
+
+    private async Task HandleKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" && !string.IsNullOrWhiteSpace(userInput) && !isBotTyping)
+        {
+            await SendMessage();
+        }
+    }
+
+    private class ChatMessage
+    {
+        public string Text { get; set; } = "";
+        public bool IsUser { get; set; }
+    }
+}

@@ -1,23 +1,33 @@
 ﻿@inherits LayoutComponentBase
 
-<div class="page">
-    <div class="sidebar">
-        <NavMenu/>
-    </div>
+<MudThemeProvider Theme="_haxTheme" />
+<MudPopoverProvider />
+<MudDialogProvider />
+<MudSnackbarProvider />
 
-    <main>
-        <div class="top-row px-4">
-            <a href="https://learn.microsoft.com/aspnet/core/" target="_blank">About</a>
-        </div>
+<MudLayout>
+    <MudAppBar Color="Color.Surface" Fixed="true" Elevation="0" Style="border-bottom: 1px solid #e0e0e0; color: #111111;">
+        <MudIcon Icon="@Icons.Material.Filled.Forum" Color="Color.Primary" Class="mr-3" />
+        <MudText Typo="Typo.h6" Style="font-weight: 600; color: #111111;">AI Interview Simulator</MudText>
+    </MudAppBar>
+    
+    <MudMainContent Class="pt-16" Style="background-color: #f3f4f6; min-height: 100vh;">
+        @Body
+    </MudMainContent>
+</MudLayout>
 
-        <article class="content px-4">
-            @Body
-        </article>
-    </main>
-</div>
-
-<div id="blazor-error-ui">
-    An unhandled error has occurred.
-    <a href="" class="reload">Reload</a>
-    <a class="dismiss">🗙</a>
-</div>
+@code {
+    private MudTheme _haxTheme = new MudTheme()
+    {
+        PaletteLight = new PaletteLight()
+        {
+            Primary = "#0067b8",       // Το επίσημο, οικείο μπλε της Microsoft (εμπνέει εμπιστοσύνη)
+            Secondary = "#2b579a",
+            Background = "#f3f4f6",    // Απαλό γκρι φόντο
+            AppbarBackground = "#ffffff",
+            Surface = "#ffffff",       // Λευκές επιφάνειες για τα panels
+            TextPrimary = "#242424",   // Σκούρο γκρι για ξεκούραστη ανάγνωση (όχι απόλυτο μαύρο)
+            TextSecondary = "#5c5c5c"
+        }
+    };
+}
