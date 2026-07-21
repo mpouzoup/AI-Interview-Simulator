@@ -10,6 +10,7 @@
 
     <ItemGroup>
       <ProjectReference Include="..\AI-Interview-Simulator.Engine\AI-Interview-Simulator.Engine.csproj" />
+      <ProjectReference Include="..\AI-Interview-Simulator.Data\AI-Interview-Simulator.Data.csproj" />
     </ItemGroup>
 
     <ItemGroup>

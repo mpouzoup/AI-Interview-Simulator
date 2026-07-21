@@ -4,6 +4,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AI-Interview-Simulator", "A
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AI-Interview-Simulator.Engine", "AI-Interview-Simulator.Engine\AI-Interview-Simulator.Engine.csproj", "{1DB96AB7-980A-48ED-9E6C-8DD89A346FFF}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AI-Interview-Simulator.Data", "AI-Interview-Simulator.Data\AI-Interview-Simulator.Data.csproj", "{16135FBD-C00B-4137-896D-B5A48B8A80AA}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "InterviewSimulator.Api", "InterviewSimulator.Api\InterviewSimulator.Api.csproj", "{C9B1F9C4-FBE5-4A31-BEE4-0FC5DA89041B}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -18,5 +22,13 @@ Global
 		{1DB96AB7-980A-48ED-9E6C-8DD89A346FFF}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{1DB96AB7-980A-48ED-9E6C-8DD89A346FFF}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{1DB96AB7-980A-48ED-9E6C-8DD89A346FFF}.Release|Any CPU.Build.0 = Release|Any CPU
+		{16135FBD-C00B-4137-896D-B5A48B8A80AA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{16135FBD-C00B-4137-896D-B5A48B8A80AA}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{16135FBD-C00B-4137-896D-B5A48B8A80AA}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{16135FBD-C00B-4137-896D-B5A48B8A80AA}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C9B1F9C4-FBE5-4A31-BEE4-0FC5DA89041B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C9B1F9C4-FBE5-4A31-BEE4-0FC5DA89041B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C9B1F9C4-FBE5-4A31-BEE4-0FC5DA89041B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C9B1F9C4-FBE5-4A31-BEE4-0FC5DA89041B}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

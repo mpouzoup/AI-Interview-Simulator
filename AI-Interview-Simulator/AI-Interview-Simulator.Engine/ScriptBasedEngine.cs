@@ -1,3 +1,6 @@
+using System.Collections.Generic;
+using System.Threading.Tasks;
+
 namespace AI_Interview_Simulator.Engine;
 
 public class ScriptBasedEngine : IInterviewEngine
@@ -43,6 +46,17 @@ public class ScriptBasedEngine : IInterviewEngine
         };
     }
 
+    public Task<string> GetQuestionForStageAsync(int stageNumber)
+    {
+        int index = stageNumber - 1;
+        if (index >= 0 && index < _stages.Count)
+        {
+            return Task.FromResult(_stages[index].Question);
+        }
+
+        return Task.FromResult("Η συνέντευξη έχει ολοκληρωθεί. Σας ευχαριστούμε πολύ!");
+    }
+
     public string GetCurrentPrompt()
     {
         if (IsInterviewFinished())
@@ -56,7 +70,6 @@ public class ScriptBasedEngine : IInterviewEngine
     public void ProcessUserResponse(string userResponse, double responseLatencySeconds)
     {
         if (IsInterviewFinished()) return;
-
 
         if (!_isShowingFeedback)
         {
