@@ -1,0 +1,43 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <Nullable>enable</Nullable>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <RootNamespace>AIInterviewSimulator.Client</RootNamespace>
+        <AssemblyName>$(AssemblyName.Replace(' ', '_'))</AssemblyName>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\AIInterviewSimulator.Engine\AIInterviewSimulator.Engine.csproj" />
+      <ProjectReference Include="..\AIInterviewSimulator.Data\AIInterviewSimulator.Data.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <PackageReference Include="MudBlazor" Version="9.6.0" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <_ContentIncludedByDefault Remove="Components\Layout\MainLayout.razor" />
+      <_ContentIncludedByDefault Remove="Components\Layout\NavMenu.razor" />
+      <_ContentIncludedByDefault Remove="Components\Pages\Home.razor" />
+      <_ContentIncludedByDefault Remove="Components\Interview\ChatInput.razor" />
+      <_ContentIncludedByDefault Remove="Components\Interview\ChatMessage.razor" />
+      <_ContentIncludedByDefault Remove="Components\Interview\ChatWindow.razor" />
+      <_ContentIncludedByDefault Remove="Components\Interview\ProgressBar.razor" />
+      <_ContentIncludedByDefault Remove="Components\Participant\RegistrationForm.razor" />
+      <_ContentIncludedByDefault Remove="Components\Questionnaire\MasiForm.razor" />
+      <_ContentIncludedByDefault Remove="Components\Questionnaire\NasaTlxForm.razor" />
+      <_ContentIncludedByDefault Remove="Components\Questionnaire\SusForm.razor" />
+      <_ContentIncludedByDefault Remove="Components\Shared\ErrorMessage.razor" />
+      <_ContentIncludedByDefault Remove="Components\Shared\LoadingSpinner.razor" />
+      <_ContentIncludedByDefault Remove="Components\_Imports.razor" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <AdditionalFiles Include="Layout\MainLayout.razor" />
+      <AdditionalFiles Include="Layout\NavMenu.razor" />
+      <AdditionalFiles Include="Pages\Home.razor" />
+    </ItemGroup>
+
+</Project>

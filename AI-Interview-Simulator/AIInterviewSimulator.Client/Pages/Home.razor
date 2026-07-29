@@ -1,0 +1,343 @@
+﻿@page "/"
+@using static Microsoft.AspNetCore.Components.Web.RenderMode
+@rendermode InteractiveServer
+
+@using System.Diagnostics
+
+@inject HttpClient Http
+@inject IJSRuntime JSRuntime
+
+<PageTitle>AI Interview Simulator</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Medium" Class="my-6">
+
+    @if (!isSessionStarted)
+    {
+        <MudCard Elevation="4" Class="pa-6 rounded-lg">
+            <MudText Typo="Typo.h4" Align="Align.Center" GutterBottom="true" Style="font-weight:700; color:#1e293b;">
+                Προσομοίωση Συνέντευξης Εργασίας
+            </MudText>
+            <MudText Typo="Typo.body1" Align="Align.Center" Class="mb-6" Style="color:#64748b;">
+                Παρακαλούμε συμπληρώστε τα παρακάτω στοιχεία για να ξεκινήσει η διαδικασία (7 στάδια).
+            </MudText>
+
+            <MudForm @ref="form">
+                <MudTextField @bind-Value="nickname" Label="Ψευδώνυμο / Nickname" Required="true" Variant="Variant.Outlined" Class="mb-4" />
+                
+                <MudNumericField @bind-Value="age" Label="Ηλικία" Required="true" Min="18" Max="99" Variant="Variant.Outlined" Class="mb-4" />
+
+                <MudSelect @bind-Value="gender" Label="Φύλο" Required="true" Variant="Variant.Outlined" Class="mb-4">
+                    <MudSelectItem Value="@("Male")">Άνδρας</MudSelectItem>
+                    <MudSelectItem Value="@("Female")">Γυναίκα</MudSelectItem>
+                    <MudSelectItem Value="@("Other")">Άλλο / Προτιμώ να μην πω</MudSelectItem>
+                </MudSelect>
+
+                <MudSelect @bind-Value="aiFamiliarity" Label="Εξοικείωση με την Τεχνητή Νοημοσύνη (AI)" Required="true" Variant="Variant.Outlined" Class="mb-6">
+                    <MudSelectItem Value="@("Low")">Χαμηλή</MudSelectItem>
+                    <MudSelectItem Value="@("Medium")">Μεσαία</MudSelectItem>
+                    <MudSelectItem Value="@("High")">Υψηλή</MudSelectItem>
+                </MudSelect>
+
+                <MudSelect @bind-Value="selectedCondition" Label="Συνθήκη Έρευνας (Condition)" Required="true" Variant="Variant.Outlined" Class="mb-6">
+                    <MudSelectItem Value="@("A")">Condition A (Script-Based)</MudSelectItem>
+                    <MudSelectItem Value="@("B")">Condition B (LLM-Based / Gemini)</MudSelectItem>
+                </MudSelect>
+
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" FullWidth="true" Size="Size.Large" OnClick="StartInterview" Disabled="@(string.IsNullOrWhiteSpace(nickname) || isLoading)" Style="border-radius: 8px; font-weight:600; text-transform:none; height: 50px;">
+                    @if (isLoading)
+                    {
+                        <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true"/>
+                        <MudText Class="ms-2">Έναρξη...</MudText>
+                    }
+                    else
+                    {
+                        <MudText>Έναρξη Συνέντευξης</MudText>
+                    }
+                </MudButton>
+            </MudForm>
+        </MudCard>
+    }
+    else
+    {
+        <MudPaper Elevation="3" Class="pa-4 mb-4 rounded-lg" Style="background-color: #f8fafc;">
+            <div style="display:flex; justify-content:space-between; align-items:center;" class="mb-2">
+                <MudText Typo="Typo.subtitle1" Style="font-weight: 700; color: #0f172a;">
+                    Στάδιο @currentStage από 7
+                </MudText>
+                <MudChip T="string" Color="Color.Info" Variant="Variant.Outlined" Size="Size.Small">
+                    Condition @selectedCondition
+                </MudChip>
+            </div>
+            <MudProgressLinear Color="Color.Primary" Value="@((currentStage / 7.0) * 100)" Class="rounded" Size="Size.Medium" />
+        </MudPaper>
+
+        <MudPaper Elevation="2" id="chat-container" Style="height: 500px; overflow-y: auto; padding: 20px; background-color: #ffffff; border-radius: 12px; border: 1px solid #e2e8f0;">
+            <div style="display: flex; flex-direction: column; gap: 16px;">
+                @foreach (var msg in chatMessages)
+                {
+                    var isUser = msg.IsUser;
+                    <div style="display: flex; justify-content: @(isUser ? "flex-end" : "flex-start"); gap: 10px;">
+                        @if (!isUser)
+                        {
+                            <MudAvatar Color="Color.Primary" Variant="Variant.Filled" Size="Size.Medium">
+                                <MudIcon Icon="@Icons.Material.Filled.SmartToy" />
+                            </MudAvatar>
+                        }
+
+                        <div style="background-color: @(isUser ? "#2563eb" : "#f1f5f9"); 
+                                    color: @(isUser ? "#ffffff" : "#0f172a"); 
+                                    padding: 14px 18px; 
+                                    border-radius: 16px; 
+                                    max-width: 75%; 
+                                    font-size: 15px; 
+                                    line-height: 1.6;
+                                    box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
+                            <span style="font-weight: 700; display: block; margin-bottom: 4px; font-size: 11px; color: @(isUser ? "#bfdbfe" : "#64748b"); text-transform: uppercase;">
+                                @(isUser ? nickname : "Εξεταστής AI")
+                            </span>
+                            @msg.Text
+                        </div>
+
+                        @if (isUser)
+                        {
+                            <MudAvatar Color="Color.Secondary" Variant="Variant.Filled" Size="Size.Medium">
+                                <MudIcon Icon="@Icons.Material.Filled.Person" />
+                            </MudAvatar>
+                        }
+                    </div>
+                }
+
+                @if (isBotTyping)
+                {
+                    <div style="display: flex; gap: 10px; align-items: center;">
+                        <MudAvatar Color="Color.Primary" Variant="Variant.Filled" Size="Size.Medium">
+                            <MudIcon Icon="@Icons.Material.Filled.SmartToy" />
+                        </MudAvatar>
+                        <MudText Typo="Typo.body2" Style="color: #64748b; font-style: italic;">
+                            Ο εξεταστής πληκτρολογεί...
+                        </MudText>
+                    </div>
+                }
+            </div>
+        </MudPaper>
+
+        <div Class="mt-4" style="display: flex; gap: 12px;">
+            @if (!isInterviewFinished)
+            {
+                <MudTextField @bind-Value="userInput" 
+                              Placeholder="Γράψτε την απάντησή σας εδώ..." 
+                              Variant="Variant.Outlined" 
+                              Clearable="true"
+                              OnKeyDown="HandleKeyDown"
+                              Immediate="true"
+                              Disabled="@isBotTyping"
+                              Style="background-color: #ffffff;" />
+                              
+                <MudButton Variant="Variant.Filled" 
+                           Color="Color.Primary" 
+                           OnClick="SendMessage" 
+                           Disabled="@(string.IsNullOrWhiteSpace(userInput) || isBotTyping)"
+                           EndIcon="@Icons.Material.Filled.Send"
+                           Style="height: 56px; min-width: 120px; border-radius: 8px; font-weight: 600; text-transform: none;">
+                    Αποστολή
+                </MudButton>
+            }
+            else
+            {
+                <MudAlert Severity="Severity.Success" Variant="Variant.Filled" Class="w-100" Style="border-radius: 8px;">
+                    🎉 Η προσομοίωση συνέντευξης ολοκληρώθηκε! Σας ευχαριστούμε θερμά για τη συμμετοχή σας.
+                </MudAlert>
+            }
+        </div>
+    }
+
+</MudContainer>
+
+@code {
+    private const string ApiBaseUrl = "http://localhost:5055/api/Interview";
+
+    private MudForm form = null!;
+    private bool isLoading = false;
+
+    private string nickname = "";
+    private int age = 24;
+    private string gender = "Male";
+    private string aiFamiliarity = "Medium";
+    private string selectedCondition = "A";
+
+    private bool isSessionStarted = false;
+    private int userId;
+    private Guid sessionId;
+    private int currentStage = 1;
+    private bool isInterviewFinished = false;
+
+    private string userInput = "";
+    private bool isBotTyping = false;
+    private List<ChatMessage> chatMessages = new();
+
+    private Stopwatch latencyStopwatch = new();
+
+    private async Task StartInterview()
+    {
+        if (string.IsNullOrWhiteSpace(nickname))
+            return;
+
+        isLoading = true;
+
+        try
+        {
+            var userRequest = new
+            {
+                nickname,
+                age,
+                gender,
+                aiFamiliarityLevel = aiFamiliarity
+            };
+
+            var userResponse = await Http.PostAsJsonAsync(
+                $"{ApiBaseUrl}/users",
+                userRequest);
+
+            userResponse.EnsureSuccessStatusCode();
+
+            var user = await userResponse.Content
+                .ReadFromJsonAsync<UserDto>();
+
+            if (user == null)
+                return;
+
+            userId = user.Id;
+
+            var sessionRequest = new
+            {
+                userId,
+                condition = selectedCondition
+            };
+
+            var sessionResponse = await Http.PostAsJsonAsync(
+                $"{ApiBaseUrl}/sessions",
+                sessionRequest);
+
+            sessionResponse.EnsureSuccessStatusCode();
+
+            var session = await sessionResponse.Content
+                .ReadFromJsonAsync<SessionDto>();
+
+            if (session == null)
+                return;
+
+            sessionId = session.Id;
+            isSessionStarted = true;
+
+            await GetNextQuestionFromApi();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error starting interview: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task GetNextQuestionFromApi()
+    {
+        isBotTyping = true;
+        StateHasChanged();
+
+        try
+        {
+            var res = await Http.GetFromJsonAsync<QuestionResponseDto>($"{ApiBaseUrl}/sessions/{sessionId}/next-question");
+            
+            if (res != null)
+            {
+                if (res.IsFinished)
+                {
+                    isInterviewFinished = true;
+                }
+                else
+                {
+                    currentStage = res.StageNumber;
+
+                    if (!string.IsNullOrWhiteSpace(res.Feedback))
+                    {
+                        chatMessages.Add(new ChatMessage
+                        {
+                            Text = res.Feedback,
+                            IsUser = false
+                        });
+                    }
+
+                    chatMessages.Add(new ChatMessage
+                    {
+                        Text = res.QuestionText,
+                        IsUser = false
+                    });
+
+                    latencyStopwatch.Restart();
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error fetching question: {ex.Message}");
+        }
+        finally
+        {
+            isBotTyping = false;
+            StateHasChanged();
+            await ScrollToBottom();
+        }
+    }
+
+    private async Task SendMessage()
+    {
+        if (string.IsNullOrWhiteSpace(userInput) || isBotTyping) return;
+
+        latencyStopwatch.Stop();
+        double latencySeconds = latencyStopwatch.Elapsed.TotalSeconds;
+
+        var userText = userInput;
+        userInput = "";
+
+        chatMessages.Add(new ChatMessage { Text = userText, IsUser = true });
+        await ScrollToBottom();
+
+        var answerReq = new
+        {
+            sessionId = sessionId,
+            stageNumber = currentStage,
+            questionText = chatMessages.LastOrDefault(m => !m.IsUser)?.Text ?? "",
+            answerText = userText,
+            responseLatencyInSeconds = Math.Round(latencySeconds, 2),
+            answerSubmittedAt = DateTime.UtcNow
+        };
+
+        try
+        {
+            await Http.PostAsJsonAsync($"{ApiBaseUrl}/answers", answerReq);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error saving answer: {ex.Message}");
+        }
+
+        await GetNextQuestionFromApi();
+    }
+
+    private async Task HandleKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" && !string.IsNullOrWhiteSpace(userInput) && !isBotTyping)
+        {
+            await SendMessage();
+        }
+    }
+
+    private async Task ScrollToBottom()
+    {
+        await Task.Delay(50);
+        await JSRuntime.InvokeVoidAsync("eval", "var el = document.getElementById('chat-container'); if(el) { el.scrollTop = el.scrollHeight; }");
+    }
+}

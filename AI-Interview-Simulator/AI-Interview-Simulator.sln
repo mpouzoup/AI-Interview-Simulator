@@ -1,12 +1,12 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AI-Interview-Simulator", "AI-Interview-Simulator\AI-Interview-Simulator.csproj", "{CC0146A6-8BF5-40D1-8C9C-A7CC23D3F7F3}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AIInterviewSimulator.Client", "AIInterviewSimulator.Client\AIInterviewSimulator.Client.csproj", "{CC0146A6-8BF5-40D1-8C9C-A7CC23D3F7F3}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AI-Interview-Simulator.Engine", "AI-Interview-Simulator.Engine\AI-Interview-Simulator.Engine.csproj", "{1DB96AB7-980A-48ED-9E6C-8DD89A346FFF}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AIInterviewSimulator.Engine", "AIInterviewSimulator.Engine\AIInterviewSimulator.Engine.csproj", "{1DB96AB7-980A-48ED-9E6C-8DD89A346FFF}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AI-Interview-Simulator.Data", "AI-Interview-Simulator.Data\AI-Interview-Simulator.Data.csproj", "{16135FBD-C00B-4137-896D-B5A48B8A80AA}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AIInterviewSimulator.Data", "AIInterviewSimulator.Data\AIInterviewSimulator.Data.csproj", "{16135FBD-C00B-4137-896D-B5A48B8A80AA}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "InterviewSimulator.Api", "InterviewSimulator.Api\InterviewSimulator.Api.csproj", "{C9B1F9C4-FBE5-4A31-BEE4-0FC5DA89041B}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AIInterviewSimulator.Api", "AIInterviewSimulator.Api\AIInterviewSimulator.Api.csproj", "{C9B1F9C4-FBE5-4A31-BEE4-0FC5DA89041B}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

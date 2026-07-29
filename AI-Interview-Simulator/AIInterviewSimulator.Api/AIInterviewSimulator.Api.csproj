@@ -1,0 +1,29 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <Nullable>enable</Nullable>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <RootNamespace>AIInterviewSimulator.Api</RootNamespace>
+        <UserSecretsId>13f56cde-a60b-4b4c-a8a1-8f1102d5234d</UserSecretsId>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="8.0.12" />
+        <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="8.0.12">
+          <PrivateAssets>all</PrivateAssets>
+          <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
+        <PackageReference Include="Swashbuckle.AspNetCore" Version="6.6.2"/>
+    </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\AIInterviewSimulator.Data\AIInterviewSimulator.Data.csproj" />
+      <ProjectReference Include="..\AIInterviewSimulator.Engine\AIInterviewSimulator.Engine.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <Folder Include="DTOs\Responses\" />
+    </ItemGroup>
+
+</Project>
