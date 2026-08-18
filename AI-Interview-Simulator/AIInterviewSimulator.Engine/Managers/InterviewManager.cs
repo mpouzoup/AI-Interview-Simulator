@@ -6,14 +6,10 @@ namespace AIInterviewSimulator.Engine.Managers;
 public class InterviewManager
 {
     private readonly ScriptBasedEngine _scriptEngine;
-    private readonly LlmBasedEngine _llmEngine;
 
-    public InterviewManager(
-        ScriptBasedEngine scriptEngine,
-        LlmBasedEngine llmEngine)
+    public InterviewManager(ScriptBasedEngine scriptEngine)
     {
         _scriptEngine = scriptEngine;
-        _llmEngine = llmEngine;
     }
 
     public async Task<string> GetNextQuestionAsync(
@@ -21,24 +17,20 @@ public class InterviewManager
         int stageNumber,
         List<UserAnswer> previousAnswers)
     {
-        var normalizedCondition = condition.Trim().ToUpperInvariant();
+        var normalizedCondition = condition
+            .Trim()
+            .ToUpperInvariant();
 
-        if (normalizedCondition == "A")
+        if (normalizedCondition != "A" &&
+            normalizedCondition != "B")
         {
-            return await _scriptEngine.GetNextQuestionAsync(
-                stageNumber,
-                previousAnswers);
+            throw new ArgumentException(
+                "Condition must be A or B.",
+                nameof(condition));
         }
 
-        if (normalizedCondition == "B")
-        {
-            return await _llmEngine.GetNextQuestionAsync(
-                stageNumber,
-                previousAnswers);
-        }
-
-        throw new ArgumentException(
-            "Condition must be A or B.",
-            nameof(condition));
+        return await _scriptEngine.GetNextQuestionAsync(
+            stageNumber,
+            previousAnswers);
     }
 }

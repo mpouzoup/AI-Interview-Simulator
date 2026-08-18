@@ -1,3 +1,4 @@
+using System.Net;
 using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.Configuration;
@@ -11,7 +12,11 @@ public class GeminiService
 
     public GeminiService(IConfiguration configuration)
     {
-        _httpClient = new HttpClient();
+        _httpClient = new HttpClient
+        {
+            Timeout = TimeSpan.FromSeconds(30)
+        };
+
         _apiKey = configuration["GeminiApiKey"] ?? string.Empty;
     }
 
@@ -19,7 +24,9 @@ public class GeminiService
     {
         if (string.IsNullOrWhiteSpace(_apiKey))
         {
-            return "[Gemini AI Error]: Δεν έχει οριστεί Gemini API Key.";
+            Console.WriteLine("Gemini API Key is missing.");
+
+            return "Η ανατροφοδότηση δεν ήταν διαθέσιμη αυτή τη στιγμή.";
         }
 
         var requestBody = new
@@ -36,52 +43,147 @@ public class GeminiService
             }
         };
 
-        var jsonContent = new StringContent(
-            JsonSerializer.Serialize(requestBody),
-            Encoding.UTF8,
-            "application/json");
-
         string[] candidateModels =
         {
-            "gemini-2.5-flash",
-            "gemini-2.0-flash"
+            "gemini-3.6-flash",
+            "gemini-3.5-flash"
         };
-
-        string lastError = "";
 
         foreach (var model in candidateModels)
         {
-            var url =
-                $"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={_apiKey}";
+            int attemptsForThisModel =
+                model == "gemini-3.6-flash"
+                    ? 2
+                    : 1;
 
-            try
+            for (int attempt = 1; attempt <= attemptsForThisModel; attempt++)
             {
-                var response = await _httpClient.PostAsync(url, jsonContent);
-                var responseJson = await response.Content.ReadAsStringAsync();
+                var url =
+                    $"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent";
 
-                if (response.IsSuccessStatusCode)
+                using var request =
+                    new HttpRequestMessage(HttpMethod.Post, url);
+
+                request.Headers.Add("x-goog-api-key", _apiKey);
+
+                request.Content = new StringContent(
+                    JsonSerializer.Serialize(requestBody),
+                    Encoding.UTF8,
+                    "application/json");
+
+                try
                 {
-                    using var doc = JsonDocument.Parse(responseJson);
+                    using var response =
+                        await _httpClient.SendAsync(request);
 
-                    return doc.RootElement
+                    var responseJson =
+                        await response.Content.ReadAsStringAsync();
+
+                    if (response.IsSuccessStatusCode)
+                    {
+                        using var doc =
+                            JsonDocument.Parse(responseJson);
+
+                        var generatedText =
+                            doc.RootElement
                                .GetProperty("candidates")[0]
                                .GetProperty("content")
                                .GetProperty("parts")[0]
                                .GetProperty("text")
-                               .GetString()
-                           ?? "Δεν παράχθηκε απάντηση.";
-                }
+                               .GetString();
 
-                lastError =
-                    $"[{model} Error - {response.StatusCode}]: {responseJson}";
+                        Console.WriteLine(
+                            $"Gemini response generated successfully using {model}.");
+
+                        return generatedText
+                               ?? "Δεν παράχθηκε απάντηση.";
+                    }
+
+                    Console.WriteLine(
+                        $"Gemini API error ({model}) " +
+                        $"Attempt {attempt}/{attemptsForThisModel}: " +
+                        $"{(int)response.StatusCode} {response.StatusCode}\n" +
+                        responseJson);
+
+                    bool shouldRetry =
+                        response.StatusCode == HttpStatusCode.RequestTimeout ||
+                        response.StatusCode == HttpStatusCode.TooManyRequests ||
+                        response.StatusCode == HttpStatusCode.InternalServerError ||
+                        response.StatusCode == HttpStatusCode.BadGateway ||
+                        response.StatusCode == HttpStatusCode.ServiceUnavailable ||
+                        response.StatusCode == HttpStatusCode.GatewayTimeout;
+
+                    if (!shouldRetry)
+                    {
+                        break;
+                    }
+
+                    if (attempt < attemptsForThisModel)
+                    {
+                        int delaySeconds =
+                            (int)Math.Pow(2, attempt);
+
+                        Console.WriteLine(
+                            $"Retrying {model} request in {delaySeconds} second(s)...");
+
+                        await Task.Delay(
+                            TimeSpan.FromSeconds(delaySeconds));
+                    }
+                }
+                catch (HttpRequestException ex)
+                {
+                    Console.WriteLine(
+                        $"Gemini communication error ({model}) " +
+                        $"Attempt {attempt}/{attemptsForThisModel}: " +
+                        $"{ex.Message}");
+
+                    if (attempt < attemptsForThisModel)
+                    {
+                        int delaySeconds =
+                            (int)Math.Pow(2, attempt);
+
+                        Console.WriteLine(
+                            $"Retrying {model} request in {delaySeconds} second(s)...");
+
+                        await Task.Delay(
+                            TimeSpan.FromSeconds(delaySeconds));
+                    }
+                }
+                catch (TaskCanceledException ex)
+                {
+                    Console.WriteLine(
+                        $"Gemini timeout ({model}) " +
+                        $"Attempt {attempt}/{attemptsForThisModel}: " +
+                        $"{ex.Message}");
+
+                    if (attempt < attemptsForThisModel)
+                    {
+                        int delaySeconds =
+                            (int)Math.Pow(2, attempt);
+
+                        Console.WriteLine(
+                            $"Retrying {model} request in {delaySeconds} second(s)...");
+
+                        await Task.Delay(
+                            TimeSpan.FromSeconds(delaySeconds));
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine(
+                        $"Unexpected Gemini error ({model}): {ex.Message}");
+
+                    break;
+                }
             }
-            catch (Exception ex)
-            {
-                lastError =
-                    $"[{model} Exception]: {ex.Message}";
-            }
+
+            Console.WriteLine(
+                $"Switching from {model} to the next candidate model.");
         }
 
-        return lastError;
+        Console.WriteLine(
+            "All Gemini candidate models failed.");
+
+        return "Η ανατροφοδότηση δεν ήταν διαθέσιμη αυτή τη στιγμή.";
     }
 }

@@ -55,12 +55,20 @@ public class InterviewController : ControllerBase
             return NotFound("User not found.");
         }
 
-        var condition = request.Condition.Trim().ToUpperInvariant();
+        var existingSession = await _context.InterviewSessions
+            .FirstOrDefaultAsync(session => session.UserId == request.UserId);
 
-        if (condition != "A" && condition != "B")
+        if (existingSession != null)
         {
-            return BadRequest("Condition must be A or B.");
+            return Conflict(
+                "Ο συγκεκριμένος χρήστης έχει ήδη συμμετάσχει σε συνέντευξη.");
         }
+
+        var totalSessions = await _context.InterviewSessions.CountAsync();
+
+        var condition = totalSessions % 2 == 0
+            ? "A"
+            : "B";
 
         var session = new InterviewSession
         {
@@ -108,12 +116,26 @@ public class InterviewController : ControllerBase
 
         if (previousAnswers.Count > 0)
         {
-            var lastAnswer = previousAnswers.Last();
+            var lastAnswer = previousAnswers
+                .OrderBy(a => a.StageNumber)
+                .Last();
 
-            feedback = await _feedbackManager.GenerateFeedbackAsync(
-                session.Condition,
-                lastAnswer.StageNumber,
-                lastAnswer);
+            if (string.IsNullOrWhiteSpace(lastAnswer.FeedbackText))
+            {
+                feedback = await _feedbackManager.GenerateFeedbackAsync(
+                    session.Condition,
+                    lastAnswer.StageNumber,
+                    lastAnswer);
+
+                lastAnswer.FeedbackText = feedback;
+                lastAnswer.FeedbackShownAt = DateTime.UtcNow;
+
+                await _context.SaveChangesAsync();
+            }
+            else
+            {
+                feedback = lastAnswer.FeedbackText;
+            }
         }
 
         string questionText = await _interviewManager.GetNextQuestionAsync(
@@ -163,6 +185,85 @@ public class InterviewController : ControllerBase
         _context.UserAnswers.Add(answer);
         await _context.SaveChangesAsync();
 
-        return Ok(answer);
+        return Ok(new
+        {
+            answerId = answer.Id
+        });
+    }
+    
+    [HttpPut("answers/{answerId:int}/revision")]
+    public async Task<IActionResult> ReviseAnswer(
+        int answerId,
+        [FromBody] ReviseAnswerRequest request)
+    {
+        var answer = await _context.UserAnswers
+            .FirstOrDefaultAsync(a => a.Id == answerId);
+
+        if (answer == null)
+        {
+            return NotFound("Answer not found.");
+        }
+
+        if (string.IsNullOrWhiteSpace(request.RevisedAnswerText))
+        {
+            return BadRequest("Revised answer cannot be empty.");
+        }
+
+        if (answer.ChoseToRevise != true)
+        {
+            return BadRequest(
+                "The user must choose to revise before submitting a revised answer.");
+        }
+
+        if (!string.IsNullOrWhiteSpace(answer.RevisedAnswerText))
+        {
+            return Conflict("This answer has already been revised.");
+        }
+
+        answer.RevisedAnswerText = request.RevisedAnswerText.Trim();
+        answer.RevisionSubmittedAt = DateTime.UtcNow;
+
+        await _context.SaveChangesAsync();
+
+        return Ok(new
+        {
+            answer.Id,
+            answer.ChoseToRevise,
+            answer.RevisedAnswerText,
+            answer.RevisionDecisionAt,
+            answer.RevisionSubmittedAt,
+            answer.RevisionLatencyInSeconds
+        });
+    }
+    
+    [HttpPut("answers/{answerId:int}/decision")]
+    public async Task<IActionResult> SaveAnswerDecision(
+        int answerId,
+        [FromBody] AnswerDecisionRequest request)
+    {
+        var answer = await _context.UserAnswers
+            .FirstOrDefaultAsync(a => a.Id == answerId);
+
+        if (answer == null)
+        {
+            return NotFound("Answer not found.");
+        }
+
+        if (answer.ChoseToRevise.HasValue)
+        {
+            return Conflict("A decision has already been recorded.");
+        }
+
+        answer.ChoseToRevise = request.ChoseToRevise;
+        answer.RevisionDecisionAt = DateTime.UtcNow;
+
+        await _context.SaveChangesAsync();
+
+        return Ok(new
+        {
+            answer.Id,
+            answer.ChoseToRevise,
+            answer.RevisionDecisionAt
+        });
     }
 }

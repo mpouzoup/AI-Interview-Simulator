@@ -22,8 +22,4 @@
       <ProjectReference Include="..\AIInterviewSimulator.Engine\AIInterviewSimulator.Engine.csproj" />
     </ItemGroup>
 
-    <ItemGroup>
-      <Folder Include="DTOs\Responses\" />
-    </ItemGroup>
-
 </Project>

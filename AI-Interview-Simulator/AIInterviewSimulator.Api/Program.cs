@@ -21,7 +21,6 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 builder.Services.AddScoped<ScriptBasedEngine>();
-builder.Services.AddScoped<LlmBasedEngine>();
 builder.Services.AddScoped<InterviewManager>();
 builder.Services.AddScoped<ScriptFeedbackEngine>();
 builder.Services.AddScoped<LlmFeedbackEngine>();

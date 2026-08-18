@@ -7,7 +7,7 @@
 @inject HttpClient Http
 @inject IJSRuntime JSRuntime
 
-<PageTitle>AI Interview Simulator</PageTitle>
+<PageTitle>Interview Simulator</PageTitle>
 
 <MudContainer MaxWidth="MaxWidth.Medium" Class="my-6">
 
@@ -20,6 +20,34 @@
             <MudText Typo="Typo.body1" Align="Align.Center" Class="mb-6" Style="color:#64748b;">
                 Παρακαλούμε συμπληρώστε τα παρακάτω στοιχεία για να ξεκινήσει η διαδικασία (7 στάδια).
             </MudText>
+            
+            <MudAlert Severity="Severity.Info"
+                      Variant="Variant.Outlined"
+                      Class="mb-6"
+                      Style="border-radius: 8px;">
+
+                <MudText Typo="Typo.subtitle2" Style="font-weight:700;" Class="mb-2">
+                    Πώς λειτουργεί η προσομοίωση
+                </MudText>
+
+                <MudText Typo="Typo.body2">
+                    Η προσομοίωση αποτελείται από 7 στάδια συνέντευξης εργασίας.
+                    Σε κάθε στάδιο θα σας παρουσιάζεται μία ερώτηση και, αφού υποβάλετε
+                    την απάντησή σας, θα λαμβάνετε ανατροφοδότηση από το σύστημα σχετικά
+                    με την απάντησή σας.
+                    Στη συνέχεια μπορείτε είτε να βελτιώσετε την απάντησή σας είτε
+                    να συνεχίσετε στην επόμενη ερώτηση.
+                    Απαντήστε όπως θα απαντούσατε σε μια πραγματική συνέντευξη εργασίας.
+                </MudText>
+                
+                <MudText Typo="Typo.caption"
+                         Style="color:#64748b;"
+                         Class="mt-3">
+                    Η ανατροφοδότηση παρέχεται για σκοπούς εξάσκησης και αυτοβελτίωσης
+                    και δεν αποτελεί επίσημη ή αντικειμενική αξιολόγηση επαγγελματικής καταλληλότητας.
+                </MudText>
+
+            </MudAlert>
 
             <MudForm @ref="form">
                 <MudTextField @bind-Value="nickname" Label="Ψευδώνυμο / Nickname" Required="true" Variant="Variant.Outlined" Class="mb-4" />
@@ -37,12 +65,7 @@
                     <MudSelectItem Value="@("Medium")">Μεσαία</MudSelectItem>
                     <MudSelectItem Value="@("High")">Υψηλή</MudSelectItem>
                 </MudSelect>
-
-                <MudSelect @bind-Value="selectedCondition" Label="Συνθήκη Έρευνας (Condition)" Required="true" Variant="Variant.Outlined" Class="mb-6">
-                    <MudSelectItem Value="@("A")">Condition A (Script-Based)</MudSelectItem>
-                    <MudSelectItem Value="@("B")">Condition B (LLM-Based / Gemini)</MudSelectItem>
-                </MudSelect>
-
+                
                 <MudButton Variant="Variant.Filled" Color="Color.Primary" FullWidth="true" Size="Size.Large" OnClick="StartInterview" Disabled="@(string.IsNullOrWhiteSpace(nickname) || isLoading)" Style="border-radius: 8px; font-weight:600; text-transform:none; height: 50px;">
                     @if (isLoading)
                     {
@@ -64,9 +87,6 @@
                 <MudText Typo="Typo.subtitle1" Style="font-weight: 700; color: #0f172a;">
                     Στάδιο @currentStage από 7
                 </MudText>
-                <MudChip T="string" Color="Color.Info" Variant="Variant.Outlined" Size="Size.Small">
-                    Condition @selectedCondition
-                </MudChip>
             </div>
             <MudProgressLinear Color="Color.Primary" Value="@((currentStage / 7.0) * 100)" Class="rounded" Size="Size.Medium" />
         </MudPaper>
@@ -80,7 +100,7 @@
                         @if (!isUser)
                         {
                             <MudAvatar Color="Color.Primary" Variant="Variant.Filled" Size="Size.Medium">
-                                <MudIcon Icon="@Icons.Material.Filled.SmartToy" />
+                                <MudIcon Icon="@Icons.Material.Filled.BusinessCenter" />
                             </MudAvatar>
                         }
 
@@ -93,7 +113,7 @@
                                     line-height: 1.6;
                                     box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
                             <span style="font-weight: 700; display: block; margin-bottom: 4px; font-size: 11px; color: @(isUser ? "#bfdbfe" : "#64748b"); text-transform: uppercase;">
-                                @(isUser ? nickname : "Εξεταστής AI")
+                                @(isUser ? nickname : "ΣΥΝΕΝΤΕΥΚΤΗΣ")
                             </span>
                             @msg.Text
                         </div>
@@ -111,10 +131,10 @@
                 {
                     <div style="display: flex; gap: 10px; align-items: center;">
                         <MudAvatar Color="Color.Primary" Variant="Variant.Filled" Size="Size.Medium">
-                            <MudIcon Icon="@Icons.Material.Filled.SmartToy" />
+                            <MudIcon Icon="@Icons.Material.Filled.BusinessCenter" />
                         </MudAvatar>
                         <MudText Typo="Typo.body2" Style="color: #64748b; font-style: italic;">
-                            Ο εξεταστής πληκτρολογεί...
+                            Ο συνεντεύκτης πληκτρολογεί...
                         </MudText>
                     </div>
                 }
@@ -122,30 +142,88 @@
         </MudPaper>
 
         <div Class="mt-4" style="display: flex; gap: 12px;">
-            @if (!isInterviewFinished)
+            @if (interviewState == InterviewUiState.Answering)
             {
-                <MudTextField @bind-Value="userInput" 
-                              Placeholder="Γράψτε την απάντησή σας εδώ..." 
-                              Variant="Variant.Outlined" 
-                              Clearable="true"
-                              OnKeyDown="HandleKeyDown"
-                              Immediate="true"
-                              Disabled="@isBotTyping"
-                              Style="background-color: #ffffff;" />
-                              
-                <MudButton Variant="Variant.Filled" 
-                           Color="Color.Primary" 
-                           OnClick="SendMessage" 
-                           Disabled="@(string.IsNullOrWhiteSpace(userInput) || isBotTyping)"
-                           EndIcon="@Icons.Material.Filled.Send"
-                           Style="height: 56px; min-width: 120px; border-radius: 8px; font-weight: 600; text-transform: none;">
+                <MudTextField @bind-Value="userInput"
+                              Label="Γράψτε την απάντησή σας..."
+                              Variant="Variant.Outlined"
+                              FullWidth="true"
+                              Lines="3"
+                              Disabled="@isBotTyping" />
+
+                <MudButton Variant="Variant.Filled"
+                           Color="Color.Primary"
+                           OnClick="SendMessage"
+                           Disabled="@(string.IsNullOrWhiteSpace(userInput) || isBotTyping)">
                     Αποστολή
                 </MudButton>
             }
-            else
+            @if (interviewState == InterviewUiState.WaitingForDecision)
             {
-                <MudAlert Severity="Severity.Success" Variant="Variant.Filled" Class="w-100" Style="border-radius: 8px;">
-                    🎉 Η προσομοίωση συνέντευξης ολοκληρώθηκε! Σας ευχαριστούμε θερμά για τη συμμετοχή σας.
+                <MudStack Spacing="2" Class="mt-4">
+
+                    <MudText Typo="Typo.body2"
+                             Align="Align.Center"
+                             Style="color:#64748b;">
+                        Αφού διαβάσετε την ανατροφοδότηση, επιλέξτε αν θέλετε
+                        να βελτιώσετε την απάντησή σας ή να συνεχίσετε στην επόμενη ερώτηση.
+                    </MudText>
+
+                    <MudStack Row="true"
+                              Spacing="2"
+                              Justify="Justify.Center">
+
+                        <MudButton Variant="Variant.Outlined"
+                                   Color="Color.Primary"
+                                   StartIcon="@Icons.Material.Filled.Edit"
+                                   OnClick="ChooseRevision">
+                            Βελτίωση απάντησης
+                        </MudButton>
+
+                        <MudButton Variant="Variant.Filled"
+                                   Color="Color.Primary"
+                                   EndIcon="@Icons.Material.Filled.ArrowForward"
+                                   OnClick="ContinueWithoutRevision">
+                            Συνέχεια στην επόμενη ερώτηση
+                        </MudButton>
+
+                    </MudStack>
+
+                </MudStack>
+            }
+            
+            @if (interviewState == InterviewUiState.Revising)
+            {
+                <MudStack Spacing="2" Class="w-100">
+
+                    <MudText Typo="Typo.subtitle2" Style="color:#475569;">
+                        Βελτιώστε την απάντησή σας με βάση το feedback που λάβατε.
+                    </MudText>
+
+                    <MudTextField @bind-Value="userInput"
+                                  Label="Βελτιωμένη απάντηση"
+                                  Variant="Variant.Outlined"
+                                  FullWidth="true"
+                                  Lines="4" />
+
+                    <MudButton Variant="Variant.Filled"
+                               Color="Color.Primary"
+                               OnClick="SubmitRevision"
+                               Disabled="@string.IsNullOrWhiteSpace(userInput)">
+                        Υποβολή βελτιωμένης απάντησης
+                    </MudButton>
+
+                </MudStack>
+            }
+
+            @if (interviewState == InterviewUiState.Finished)
+            {
+                <MudAlert Severity="Severity.Success"
+                          Variant="Variant.Filled"
+                          Class="w-100"
+                          Style="border-radius: 8px;">
+                    🎉 Η προσομοίωση συνέντευξης ολοκληρώθηκε!
+                    Σας ευχαριστούμε θερμά για τη συμμετοχή σας.
                 </MudAlert>
             }
         </div>
@@ -170,12 +248,31 @@
     private Guid sessionId;
     private int currentStage = 1;
     private bool isInterviewFinished = false;
+    private string currentQuestionText = "";
 
     private string userInput = "";
     private bool isBotTyping = false;
     private List<ChatMessage> chatMessages = new();
 
     private Stopwatch latencyStopwatch = new();
+    
+    private int currentAnswerId;
+    
+    private enum InterviewUiState
+    {
+        Answering,
+        WaitingForDecision,
+        Revising,
+        Finished
+    }
+
+    private InterviewUiState interviewState =
+        InterviewUiState.Answering;
+
+    private QuestionResponseDto? pendingQuestion;
+
+    private string originalAnswerText = "";
+    private DateTime currentQuestionShownAt;
 
     private async Task StartInterview()
     {
@@ -210,8 +307,7 @@
 
             var sessionRequest = new
             {
-                userId,
-                condition = selectedCondition
+                userId
             };
 
             var sessionResponse = await Http.PostAsJsonAsync(
@@ -227,6 +323,7 @@
                 return;
 
             sessionId = session.Id;
+            selectedCondition = session.Condition;
             isSessionStarted = true;
 
             await GetNextQuestionFromApi();
@@ -249,36 +346,34 @@
 
         try
         {
-            var res = await Http.GetFromJsonAsync<QuestionResponseDto>($"{ApiBaseUrl}/sessions/{sessionId}/next-question");
-            
-            if (res != null)
+            var res = await Http.GetFromJsonAsync<QuestionResponseDto>(
+                $"{ApiBaseUrl}/sessions/{sessionId}/next-question");
+
+            if (res == null)
+                return;
+
+            if (res.IsFinished)
             {
-                if (res.IsFinished)
-                {
-                    isInterviewFinished = true;
-                }
-                else
-                {
-                    currentStage = res.StageNumber;
-
-                    if (!string.IsNullOrWhiteSpace(res.Feedback))
-                    {
-                        chatMessages.Add(new ChatMessage
-                        {
-                            Text = res.Feedback,
-                            IsUser = false
-                        });
-                    }
-
-                    chatMessages.Add(new ChatMessage
-                    {
-                        Text = res.QuestionText,
-                        IsUser = false
-                    });
-
-                    latencyStopwatch.Restart();
-                }
+                isInterviewFinished = true;
+                interviewState = InterviewUiState.Finished;
+                return;
             }
+
+            if (string.IsNullOrWhiteSpace(res.Feedback))
+            {
+                ShowQuestion(res);
+                return;
+            }
+
+            chatMessages.Add(new ChatMessage
+            {
+                Text = res.Feedback,
+                IsUser = false
+            });
+
+            pendingQuestion = res;
+
+            interviewState = InterviewUiState.WaitingForDecision;
         }
         catch (Exception ex)
         {
@@ -291,14 +386,30 @@
             await ScrollToBottom();
         }
     }
+    
+    private void ShowQuestion(QuestionResponseDto question)
+    {
+        currentStage = question.StageNumber;
+        currentQuestionText = question.QuestionText;
+        currentQuestionShownAt = DateTime.UtcNow;
+        
+        chatMessages.Add(new ChatMessage
+        {
+            Text = question.QuestionText,
+            IsUser = false
+        });
+
+        latencyStopwatch.Restart();
+
+        interviewState = InterviewUiState.Answering;
+    }
 
     private async Task SendMessage()
     {
         if (string.IsNullOrWhiteSpace(userInput) || isBotTyping) return;
 
         latencyStopwatch.Stop();
-        double latencySeconds = latencyStopwatch.Elapsed.TotalSeconds;
-
+        
         var userText = userInput;
         userInput = "";
 
@@ -307,18 +418,32 @@
 
         var answerReq = new
         {
-            sessionId = sessionId,
+            sessionId,
             stageNumber = currentStage,
-            questionText = chatMessages.LastOrDefault(m => !m.IsUser)?.Text ?? "",
+            stageName = GetStageName(currentStage),
+            questionText = currentQuestionText,
             answerText = userText,
-            responseLatencyInSeconds = Math.Round(latencySeconds, 2),
-            answerSubmittedAt = DateTime.UtcNow
+            questionShownAt = currentQuestionShownAt
         };
-
+        
         try
         {
-            await Http.PostAsJsonAsync($"{ApiBaseUrl}/answers", answerReq);
-        }
+            var answerResponse = await Http.PostAsJsonAsync(
+                $"{ApiBaseUrl}/answers",
+                answerReq);
+
+            answerResponse.EnsureSuccessStatusCode();
+
+            var savedAnswer = await answerResponse.Content
+                .ReadFromJsonAsync<AnswerResponseDto>();
+
+            if (savedAnswer == null)
+            {
+                return;
+            }
+
+            currentAnswerId = savedAnswer.AnswerId;
+            originalAnswerText = userText;        }
         catch (Exception ex)
         {
             Console.WriteLine($"Error saving answer: {ex.Message}");
@@ -339,5 +464,125 @@
     {
         await Task.Delay(50);
         await JSRuntime.InvokeVoidAsync("eval", "var el = document.getElementById('chat-container'); if(el) { el.scrollTop = el.scrollHeight; }");
+    }
+    
+    private static string GetStageName(int stageNumber)
+    {
+        return stageNumber switch
+        {
+            1 => "Αυτοπαρουσίαση και πρώτη εντύπωση",
+            2 => "Κίνητρα για τη θέση και την εταιρεία",
+            3 => "Αυτοαξιολόγηση ικανοτήτων",
+            4 => "Συνεργασία και ομαδικότητα",
+            5 => "Διαχείριση δύσκολων καταστάσεων",
+            6 => "Αποτυχία και προσαρμοστικότητα",
+            7 => "Επαγγελματικοί στόχοι και εξέλιξη",
+            _ => "Άγνωστο στάδιο"
+        };
+    }
+    
+    private async Task ChooseRevision()
+    {
+        if (currentAnswerId <= 0 || pendingQuestion == null)
+            return;
+
+        try
+        {
+            var decisionRequest = new
+            {
+                choseToRevise = true
+            };
+
+            var response = await Http.PutAsJsonAsync(
+                $"{ApiBaseUrl}/answers/{currentAnswerId}/decision",
+                decisionRequest);
+
+            response.EnsureSuccessStatusCode();
+
+            userInput = originalAnswerText;
+            interviewState = InterviewUiState.Revising;
+
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error choosing revision: {ex.Message}");
+        }
+    }
+
+    private async Task ContinueWithoutRevision()
+    {
+        if (currentAnswerId <= 0 || pendingQuestion == null)
+            return;
+
+        try
+        {
+            var decisionRequest = new
+            {
+                choseToRevise = false
+            };
+
+            var response = await Http.PutAsJsonAsync(
+                $"{ApiBaseUrl}/answers/{currentAnswerId}/decision",
+                decisionRequest);
+
+            response.EnsureSuccessStatusCode();
+
+            var nextQuestion = pendingQuestion;
+            pendingQuestion = null;
+
+            ShowQuestion(nextQuestion);
+
+            await ScrollToBottom();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error saving decision: {ex.Message}");
+        }
+    }
+    
+    private async Task SubmitRevision()
+    {
+        if (currentAnswerId <= 0 ||
+            pendingQuestion == null ||
+            string.IsNullOrWhiteSpace(userInput))
+        {
+            return;
+        }
+
+        try
+        {
+            var revisedText = userInput.Trim();
+
+            var revisionRequest = new
+            {
+                revisedAnswerText = revisedText
+            };
+
+            var response = await Http.PutAsJsonAsync(
+                $"{ApiBaseUrl}/answers/{currentAnswerId}/revision",
+                revisionRequest);
+
+            response.EnsureSuccessStatusCode();
+
+            chatMessages.Add(new ChatMessage
+            {
+                Text = revisedText,
+                IsUser = true
+            });
+
+            userInput = "";
+
+            var nextQuestion = pendingQuestion;
+            pendingQuestion = null;
+
+            ShowQuestion(nextQuestion);
+
+            await ScrollToBottom();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error submitting revision: {ex.Message}");
+        }
     }
 }
