@@ -54,3 +54,93 @@ The system records interaction data required for the experimental study, includi
 ## Status
 
 The application is currently under development and testing as part of the thesis research.
+
+## How to Run
+
+### Prerequisites
+
+Make sure the following are installed:
+
+- .NET 8 SDK or newer
+- Git
+- A Google Gemini API key for Condition B
+
+### 1. Clone the repository
+
+```bash
+git clone https://github.com/mpouzoup/AI-Interview-Simulator.git
+cd AI-Interview-Simulator/AI-Interview-Simulator
+## How to Run
+
+### Prerequisites
+
+Make sure the following are installed:
+
+- .NET 8 SDK or newer
+- Git
+- A Google Gemini API key for Condition B
+
+### 1. Clone the repository
+
+```bash
+git clone https://github.com/mpouzoup/AI-Interview-Simulator.git
+cd AI-Interview-Simulator/AI-Interview-Simulator
+```
+
+### 2. Configure the Gemini API key
+
+The Gemini API key is stored using .NET User Secrets and is not included in the repository.
+
+From the project root, run:
+
+```bash
+dotnet user-secrets set "GeminiApiKey" "YOUR_API_KEY" --project AIInterviewSimulator.Api/AIInterviewSimulator.Api.csproj
+```
+
+Condition A can run without a Gemini API key.
+
+Condition B requires a valid Gemini API key in order to generate personalized feedback.
+
+### 3. Set up the database
+
+If the Entity Framework Core CLI tools are not installed, install them with:
+
+```bash
+dotnet tool install --global dotnet-ef
+```
+
+Then apply the database migrations:
+
+```bash
+dotnet ef database update --project AIInterviewSimulator.Data/AIInterviewSimulator.Data.csproj --startup-project AIInterviewSimulator.Api/AIInterviewSimulator.Api.csproj
+```
+
+### 4. Run the API
+
+From the project root, run:
+
+```bash
+dotnet run --project AIInterviewSimulator.Api/AIInterviewSimulator.Api.csproj
+```
+
+The API will run at:
+
+```text
+http://localhost:5055
+```
+
+### 5. Run the Client
+
+Open a second terminal in the project root and run:
+
+```bash
+dotnet run --project AIInterviewSimulator.Client/AIInterviewSimulator.Client.csproj
+```
+
+The application will run at:
+
+```text
+http://localhost:5265
+```
+
+Open `http://localhost:5265` in a web browser to use the interview simulator.
