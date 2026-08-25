@@ -8,12 +8,12 @@ public class UserAnswer
     public int Id { get; set; }
     
     public Guid InterviewSessionId { get; set; }
-    public InterviewSession InterviewSession { get; set; }
+    public InterviewSession? InterviewSession { get; set; }
 
     public int StageNumber { get; set; } 
-    public string StageName { get; set; }
+    public string StageName { get; set; } = string.Empty;
 
-    public string QuestionText { get; set; }
+    public string QuestionText { get; set; } = string.Empty;
     public string AnswerText { get; set; } = string.Empty;
 
     public DateTime QuestionShownAt { get; set; }
@@ -30,6 +30,11 @@ public class UserAnswer
 
     public double ResponseLatencyInSeconds => (AnswerSubmittedAt - QuestionShownAt).TotalSeconds;
     
+    public double? DecisionLatencyInSeconds =>
+        RevisionDecisionAt.HasValue && FeedbackShownAt.HasValue
+            ? (RevisionDecisionAt.Value - FeedbackShownAt.Value).TotalSeconds
+            : null;
+
     public double? RevisionLatencyInSeconds =>
         RevisionSubmittedAt.HasValue && RevisionDecisionAt.HasValue
             ? (RevisionSubmittedAt.Value - RevisionDecisionAt.Value).TotalSeconds

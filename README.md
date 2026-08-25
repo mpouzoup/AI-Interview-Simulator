@@ -70,36 +70,20 @@ Make sure the following are installed:
 ```bash
 git clone https://github.com/mpouzoup/AI-Interview-Simulator.git
 cd AI-Interview-Simulator/AI-Interview-Simulator
-## How to Run
-
-### Prerequisites
-
-Make sure the following are installed:
-
-- .NET 8 SDK or newer
-- Git
-- A Google Gemini API key for Condition B
-
-### 1. Clone the repository
-
-```bash
-git clone https://github.com/mpouzoup/AI-Interview-Simulator.git
-cd AI-Interview-Simulator/AI-Interview-Simulator
 ```
 
-### 2. Configure the Gemini API key
+### 2. Configure the Gemini API key (for Condition B)
 
-The Gemini API key is stored using .NET User Secrets and is not included in the repository.
+The Gemini API key is stored securely using .NET User Secrets and is not included in the repository.
 
-From the project root, run:
+From the project root (`AI-Interview-Simulator/AI-Interview-Simulator`), run:
 
 ```bash
 dotnet user-secrets set "GeminiApiKey" "YOUR_API_KEY" --project AIInterviewSimulator.Api/AIInterviewSimulator.Api.csproj
 ```
 
-Condition A can run without a Gemini API key.
-
-Condition B requires a valid Gemini API key in order to generate personalized feedback.
+* **Condition A** can run without a Gemini API key.
+* **Condition B** requires a valid Gemini API key to generate personalized feedback.
 
 ### 3. Set up the database
 
@@ -109,7 +93,7 @@ If the Entity Framework Core CLI tools are not installed, install them with:
 dotnet tool install --global dotnet-ef
 ```
 
-Then apply the database migrations:
+Then apply the database migrations to create/update the SQLite database:
 
 ```bash
 dotnet ef database update --project AIInterviewSimulator.Data/AIInterviewSimulator.Data.csproj --startup-project AIInterviewSimulator.Api/AIInterviewSimulator.Api.csproj
@@ -124,10 +108,8 @@ dotnet run --project AIInterviewSimulator.Api/AIInterviewSimulator.Api.csproj
 ```
 
 The API will run at:
-
-```text
-http://localhost:5055
-```
+* REST API: `http://localhost:5055`
+* Swagger UI documentation: `http://localhost:5055/swagger`
 
 ### 5. Run the Client
 
@@ -138,9 +120,15 @@ dotnet run --project AIInterviewSimulator.Client/AIInterviewSimulator.Client.csp
 ```
 
 The application will run at:
+* Web Client: `http://localhost:5265`
+
+Open `http://localhost:5265` in a web browser to start the interview simulation.
+
+### 6. Export Research Data (CSV)
+
+To export the complete experimental dataset (demographics, stages, latencies, feedback and revisions) for analysis in SPSS, Python or Excel, navigate to:
 
 ```text
-http://localhost:5265
+http://localhost:5055/api/Interview/export/csv
 ```
-
-Open `http://localhost:5265` in a web browser to use the interview simulator.
+This will automatically download a UTF-8 CSV file containing all recorded interaction data.

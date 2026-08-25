@@ -1,4 +1,4 @@
-﻿@page "/"
+@page "/"
 @using static Microsoft.AspNetCore.Components.Web.RenderMode
 @rendermode InteractiveServer
 
@@ -149,7 +149,8 @@
                               Variant="Variant.Outlined"
                               FullWidth="true"
                               Lines="3"
-                              Disabled="@isBotTyping" />
+                              Disabled="@isBotTyping"
+                              @onkeydown="HandleKeyDown" />
 
                 <MudButton Variant="Variant.Filled"
                            Color="Color.Primary"
@@ -176,14 +177,16 @@
                         <MudButton Variant="Variant.Outlined"
                                    Color="Color.Primary"
                                    StartIcon="@Icons.Material.Filled.Edit"
-                                   OnClick="ChooseRevision">
+                                   OnClick="ChooseRevision"
+                                   Disabled="@isActionLoading">
                             Βελτίωση απάντησης
                         </MudButton>
 
                         <MudButton Variant="Variant.Filled"
                                    Color="Color.Primary"
                                    EndIcon="@Icons.Material.Filled.ArrowForward"
-                                   OnClick="ContinueWithoutRevision">
+                                   OnClick="ContinueWithoutRevision"
+                                   Disabled="@isActionLoading">
                             Συνέχεια στην επόμενη ερώτηση
                         </MudButton>
 
@@ -209,7 +212,7 @@
                     <MudButton Variant="Variant.Filled"
                                Color="Color.Primary"
                                OnClick="SubmitRevision"
-                               Disabled="@string.IsNullOrWhiteSpace(userInput)">
+                               Disabled="@(string.IsNullOrWhiteSpace(userInput) || isActionLoading)">
                         Υποβολή βελτιωμένης απάντησης
                     </MudButton>
 
@@ -232,10 +235,11 @@
 </MudContainer>
 
 @code {
-    private const string ApiBaseUrl = "http://localhost:5055/api/Interview";
+    private const string ApiBaseUrl = "api/Interview";
 
     private MudForm form = null!;
     private bool isLoading = false;
+    private bool isActionLoading = false;
 
     private string nickname = "";
     private int age = 24;
@@ -247,7 +251,6 @@
     private int userId;
     private Guid sessionId;
     private int currentStage = 1;
-    private bool isInterviewFinished = false;
     private string currentQuestionText = "";
 
     private string userInput = "";
@@ -354,7 +357,6 @@
 
             if (res.IsFinished)
             {
-                isInterviewFinished = true;
                 interviewState = InterviewUiState.Finished;
                 return;
             }
@@ -454,7 +456,7 @@
 
     private async Task HandleKeyDown(KeyboardEventArgs e)
     {
-        if (e.Key == "Enter" && !string.IsNullOrWhiteSpace(userInput) && !isBotTyping)
+        if (e.Key == "Enter" && !e.ShiftKey && !string.IsNullOrWhiteSpace(userInput) && !isBotTyping && !isActionLoading)
         {
             await SendMessage();
         }
@@ -486,6 +488,7 @@
         if (currentAnswerId <= 0 || pendingQuestion == null)
             return;
 
+        isActionLoading = true;
         try
         {
             var decisionRequest = new
@@ -508,6 +511,11 @@
         {
             Console.WriteLine($"Error choosing revision: {ex.Message}");
         }
+        finally
+        {
+            isActionLoading = false;
+            StateHasChanged();
+        }
     }
 
     private async Task ContinueWithoutRevision()
@@ -515,6 +523,7 @@
         if (currentAnswerId <= 0 || pendingQuestion == null)
             return;
 
+        isActionLoading = true;
         try
         {
             var decisionRequest = new
@@ -531,13 +540,25 @@
             var nextQuestion = pendingQuestion;
             pendingQuestion = null;
 
-            ShowQuestion(nextQuestion);
+            if (nextQuestion != null && !string.IsNullOrWhiteSpace(nextQuestion.QuestionText))
+            {
+                ShowQuestion(nextQuestion);
+            }
+            else
+            {
+                interviewState = InterviewUiState.Finished;
+            }
 
             await ScrollToBottom();
         }
         catch (Exception ex)
         {
             Console.WriteLine($"Error saving decision: {ex.Message}");
+        }
+        finally
+        {
+            isActionLoading = false;
+            StateHasChanged();
         }
     }
     
@@ -550,6 +571,7 @@
             return;
         }
 
+        isActionLoading = true;
         try
         {
             var revisedText = userInput.Trim();
@@ -576,13 +598,25 @@
             var nextQuestion = pendingQuestion;
             pendingQuestion = null;
 
-            ShowQuestion(nextQuestion);
+            if (nextQuestion != null && !string.IsNullOrWhiteSpace(nextQuestion.QuestionText))
+            {
+                ShowQuestion(nextQuestion);
+            }
+            else
+            {
+                interviewState = InterviewUiState.Finished;
+            }
 
             await ScrollToBottom();
         }
         catch (Exception ex)
         {
             Console.WriteLine($"Error submitting revision: {ex.Message}");
+        }
+        finally
+        {
+            isActionLoading = false;
+            StateHasChanged();
         }
     }
 }

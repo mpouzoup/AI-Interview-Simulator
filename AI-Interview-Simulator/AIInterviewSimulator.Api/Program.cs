@@ -25,7 +25,10 @@ builder.Services.AddScoped<InterviewManager>();
 builder.Services.AddScoped<ScriptFeedbackEngine>();
 builder.Services.AddScoped<LlmFeedbackEngine>();
 builder.Services.AddScoped<FeedbackManager>();
-builder.Services.AddScoped<GeminiService>();
+builder.Services.AddHttpClient<GeminiService>(client =>
+{
+    client.Timeout = TimeSpan.FromSeconds(30);
+});
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();

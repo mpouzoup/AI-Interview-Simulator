@@ -10,13 +10,9 @@ public class GeminiService
     private readonly HttpClient _httpClient;
     private readonly string _apiKey;
 
-    public GeminiService(IConfiguration configuration)
+    public GeminiService(HttpClient httpClient, IConfiguration configuration)
     {
-        _httpClient = new HttpClient
-        {
-            Timeout = TimeSpan.FromSeconds(30)
-        };
-
+        _httpClient = httpClient ?? new HttpClient { Timeout = TimeSpan.FromSeconds(30) };
         _apiKey = configuration["GeminiApiKey"] ?? string.Empty;
     }
 
@@ -40,13 +36,20 @@ public class GeminiService
                         new { text = prompt }
                     }
                 }
+            },
+            generationConfig = new
+            {
+                temperature = 0.4,
+                maxOutputTokens = 2048
             }
         };
 
         string[] candidateModels =
         {
             "gemini-3.6-flash",
-            "gemini-3.5-flash"
+            "gemini-3.5-flash",
+            "gemini-3.7-flash",
+            "gemini-flash-latest"
         };
 
         foreach (var model in candidateModels)
