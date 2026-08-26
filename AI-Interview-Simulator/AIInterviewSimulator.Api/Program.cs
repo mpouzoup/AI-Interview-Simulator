@@ -7,6 +7,17 @@ using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
+const int minimumExportKeyLength = 32;
+var exportKey = builder.Configuration["Export:Key"];
+
+if (builder.Environment.IsProduction() &&
+    (string.IsNullOrWhiteSpace(exportKey) ||
+     exportKey.Length < minimumExportKeyLength))
+{
+    throw new InvalidOperationException(
+        $"Export:Key must be configured and contain at least {minimumExportKeyLength} characters.");
+}
+
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAll", policy =>

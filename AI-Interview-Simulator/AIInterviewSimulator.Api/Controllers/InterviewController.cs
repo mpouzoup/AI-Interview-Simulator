@@ -1,4 +1,5 @@
 using System.Security.Cryptography;
+using System.Text;
 using AIInterviewSimulator.Api.DTOs.Requests;
 using AIInterviewSimulator.Data.Context;
 using AIInterviewSimulator.Data.Entities;
@@ -16,15 +17,18 @@ public class InterviewController : ControllerBase
     private readonly ApplicationDbContext _context;
     private readonly InterviewManager _interviewManager;
     private readonly FeedbackManager _feedbackManager;
+    private readonly string _exportKey;
 
     public InterviewController(
         ApplicationDbContext context,
         InterviewManager interviewManager,
-        FeedbackManager feedbackManager)
+        FeedbackManager feedbackManager,
+        IConfiguration configuration)
     {
         _context = context;
         _interviewManager = interviewManager;
         _feedbackManager = feedbackManager;
+        _exportKey = configuration["Export:Key"] ?? string.Empty;
     }
 
     [HttpPost("users")]
@@ -347,6 +351,20 @@ public class InterviewController : ControllerBase
     [HttpGet("export/csv")]
     public async Task<IActionResult> ExportDataAsCsv()
     {
+        if (string.IsNullOrWhiteSpace(_exportKey) || _exportKey.Length < 32)
+        {
+            return StatusCode(
+                StatusCodes.Status500InternalServerError,
+                "Export endpoint is not configured.");
+        }
+
+        if (!Request.Headers.TryGetValue("X-Export-Key", out var suppliedKeys) ||
+            suppliedKeys.Count != 1 ||
+            !IsValidExportKey(suppliedKeys[0]))
+        {
+            return Unauthorized();
+        }
+
         var users = await _context.Users
             .Include(u => u.Sessions)
                 .ThenInclude(s => s.Answers)
@@ -434,12 +452,35 @@ public class InterviewController : ControllerBase
         Buffer.BlockCopy(preamble, 0, bytes, 0, preamble.Length);
         Buffer.BlockCopy(dataBytes, 0, bytes, preamble.Length, dataBytes.Length);
 
+        Response.Headers.CacheControl = "no-store";
+
         return File(bytes, "text/csv; charset=utf-8", $"interview_data_export_{DateTime.UtcNow:yyyyMMdd_HHmmss}.csv");
+    }
+
+    private bool IsValidExportKey(string? suppliedKey)
+    {
+        if (suppliedKey == null)
+        {
+            return false;
+        }
+
+        var suppliedBytes = Encoding.UTF8.GetBytes(suppliedKey);
+        var configuredBytes = Encoding.UTF8.GetBytes(_exportKey);
+
+        return suppliedBytes.Length == configuredBytes.Length &&
+               CryptographicOperations.FixedTimeEquals(
+                   suppliedBytes,
+                   configuredBytes);
     }
 
     private static string EscapeCsv(string? value)
     {
         if (string.IsNullOrEmpty(value)) return "\"\"";
-        return $"\"{value.Replace("\"", "\"\"")}\"";
+
+        var safeValue = value[0] is '=' or '+' or '-' or '@'
+            ? $"'{value}"
+            : value;
+
+        return $"\"{safeValue.Replace("\"", "\"\"")}\"";
     }
 }
