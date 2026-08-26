@@ -144,20 +144,45 @@
         <div Class="mt-4" style="display: flex; gap: 12px;">
             @if (interviewState == InterviewUiState.Answering)
             {
-                <MudTextField @bind-Value="userInput"
-                              Label="Γράψτε την απάντησή σας..."
-                              Variant="Variant.Outlined"
-                              FullWidth="true"
-                              Lines="3"
-                              Disabled="@isBotTyping"
-                              @onkeydown="HandleKeyDown" />
+                <MudStack Spacing="2" Class="w-100">
+                    <div style="display: flex; gap: 12px;">
+                        <MudTextField @bind-Value="userInput"
+                                      Label="Γράψτε την απάντησή σας..."
+                                      Variant="Variant.Outlined"
+                                      FullWidth="true"
+                                      Lines="3"
+                                      Disabled="@(isBotTyping || isAnswerSubmitting || pendingAnswerSubmission != null)"
+                                      @onkeydown="HandleKeyDown" />
 
-                <MudButton Variant="Variant.Filled"
-                           Color="Color.Primary"
-                           OnClick="SendMessage"
-                           Disabled="@(string.IsNullOrWhiteSpace(userInput) || isBotTyping)">
-                    Αποστολή
-                </MudButton>
+                        <MudButton Variant="Variant.Filled"
+                                   Color="Color.Primary"
+                                   OnClick="SendMessage"
+                                   Disabled="@(string.IsNullOrWhiteSpace(userInput) || isBotTyping || isAnswerSubmitting || pendingAnswerSubmission != null)">
+                            @if (isAnswerSubmitting)
+                            {
+                                <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true" />
+                                <MudText Class="ms-2">Αποθήκευση...</MudText>
+                            }
+                            else
+                            {
+                                <MudText>Αποστολή</MudText>
+                            }
+                        </MudButton>
+                    </div>
+
+                    @if (!string.IsNullOrWhiteSpace(answerSubmissionError))
+                    {
+                        <MudAlert Severity="Severity.Error" Variant="Variant.Outlined">
+                            @answerSubmissionError
+                            <MudButton Variant="Variant.Text"
+                                       Color="Color.Error"
+                                       OnClick="RetryPendingAnswer"
+                                       Disabled="@isAnswerSubmitting">
+                                Δοκιμάστε ξανά
+                            </MudButton>
+                        </MudAlert>
+                    }
+                </MudStack>
             }
             @if (interviewState == InterviewUiState.WaitingForDecision)
             {
@@ -240,6 +265,7 @@
     private MudForm form = null!;
     private bool isLoading = false;
     private bool isActionLoading = false;
+    private bool isAnswerSubmitting = false;
 
     private string nickname = "";
     private int age = 24;
@@ -276,6 +302,18 @@
 
     private string originalAnswerText = "";
     private DateTime currentQuestionShownAt;
+    private PendingAnswerSubmission? pendingAnswerSubmission;
+    private string? answerSubmissionError;
+
+    private sealed record PendingAnswerSubmission(
+        Guid SubmissionId,
+        Guid SessionId,
+        int StageNumber,
+        string StageName,
+        string QuestionText,
+        string AnswerText,
+        DateTime QuestionShownAt,
+        DateTime OriginalAnswerSubmittedAt);
 
     private async Task StartInterview()
     {
@@ -408,31 +446,53 @@
 
     private async Task SendMessage()
     {
-        if (string.IsNullOrWhiteSpace(userInput) || isBotTyping) return;
+        if (string.IsNullOrWhiteSpace(userInput) ||
+            isBotTyping ||
+            isAnswerSubmitting ||
+            pendingAnswerSubmission != null)
+        {
+            return;
+        }
 
         latencyStopwatch.Stop();
-        
-        var userText = userInput;
-        userInput = "";
 
-        chatMessages.Add(new ChatMessage { Text = userText, IsUser = true });
-        await ScrollToBottom();
-
-        var answerReq = new
-        {
+        pendingAnswerSubmission = new PendingAnswerSubmission(
+            Guid.NewGuid(),
             sessionId,
-            stageNumber = currentStage,
-            stageName = GetStageName(currentStage),
-            questionText = currentQuestionText,
-            answerText = userText,
-            questionShownAt = currentQuestionShownAt
-        };
-        
+            currentStage,
+            GetStageName(currentStage),
+            currentQuestionText,
+            userInput,
+            currentQuestionShownAt,
+            DateTime.UtcNow);
+
+        await PersistPendingAnswer();
+    }
+
+    private Task RetryPendingAnswer()
+    {
+        return PersistPendingAnswer();
+    }
+
+    private async Task PersistPendingAnswer()
+    {
+        if (pendingAnswerSubmission == null || isAnswerSubmitting)
+        {
+            return;
+        }
+
+        var submission = pendingAnswerSubmission;
+        var savedSuccessfully = false;
+
+        isAnswerSubmitting = true;
+        answerSubmissionError = null;
+        StateHasChanged();
+
         try
         {
             var answerResponse = await Http.PostAsJsonAsync(
                 $"{ApiBaseUrl}/answers",
-                answerReq);
+                submission);
 
             answerResponse.EnsureSuccessStatusCode();
 
@@ -441,22 +501,51 @@
 
             if (savedAnswer == null)
             {
-                return;
+                throw new InvalidOperationException(
+                    "The answer response did not contain an answer ID.");
             }
 
             currentAnswerId = savedAnswer.AnswerId;
-            originalAnswerText = userText;        }
-        catch (Exception ex)
+            originalAnswerText = submission.AnswerText;
+
+            chatMessages.Add(new ChatMessage
+            {
+                Text = submission.AnswerText,
+                IsUser = true
+            });
+
+            userInput = "";
+            pendingAnswerSubmission = null;
+            answerSubmissionError = null;
+            savedSuccessfully = true;
+        }
+        catch (Exception)
         {
-            Console.WriteLine($"Error saving answer: {ex.Message}");
+            answerSubmissionError =
+                "Η απάντησή σας δεν αποθηκεύτηκε. Ελέγξτε τη σύνδεσή σας και δοκιμάστε ξανά.";
+        }
+        finally
+        {
+            isAnswerSubmitting = false;
+            StateHasChanged();
         }
 
-        await GetNextQuestionFromApi();
+        if (savedSuccessfully)
+        {
+            await ScrollToBottom();
+            await GetNextQuestionFromApi();
+        }
     }
 
     private async Task HandleKeyDown(KeyboardEventArgs e)
     {
-        if (e.Key == "Enter" && !e.ShiftKey && !string.IsNullOrWhiteSpace(userInput) && !isBotTyping && !isActionLoading)
+        if (e.Key == "Enter" &&
+            !e.ShiftKey &&
+            !string.IsNullOrWhiteSpace(userInput) &&
+            !isBotTyping &&
+            !isActionLoading &&
+            !isAnswerSubmitting &&
+            pendingAnswerSubmission == null)
         {
             await SendMessage();
         }

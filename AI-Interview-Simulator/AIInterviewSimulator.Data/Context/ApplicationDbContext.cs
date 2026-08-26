@@ -28,5 +28,9 @@ public class ApplicationDbContext : DbContext
             .HasOne(a => a.InterviewSession)
             .WithMany(s => s.Answers)
             .HasForeignKey(a => a.InterviewSessionId);
+
+        modelBuilder.Entity<UserAnswer>()
+            .HasIndex(a => a.SubmissionId)
+            .IsUnique();
     }
 }

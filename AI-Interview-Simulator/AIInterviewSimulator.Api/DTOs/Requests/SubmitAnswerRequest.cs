@@ -2,6 +2,8 @@ namespace AIInterviewSimulator.Api.DTOs.Requests;
 
 public class SubmitAnswerRequest
 {
+    public Guid SubmissionId { get; set; }
+
     public Guid SessionId { get; set; }
 
     public int StageNumber { get; set; }
@@ -13,4 +15,6 @@ public class SubmitAnswerRequest
     public string AnswerText { get; set; } = string.Empty;
 
     public DateTime QuestionShownAt { get; set; }
+
+    public DateTime OriginalAnswerSubmittedAt { get; set; }
 }

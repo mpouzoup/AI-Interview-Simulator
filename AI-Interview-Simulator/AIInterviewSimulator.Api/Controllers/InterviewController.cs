@@ -219,6 +219,47 @@ public class InterviewController : ControllerBase
     public async Task<IActionResult> SubmitAnswer(
         [FromBody] SubmitAnswerRequest request)
     {
+        if (request.SubmissionId == Guid.Empty)
+        {
+            return BadRequest("SubmissionId is required.");
+        }
+
+        if (string.IsNullOrWhiteSpace(request.AnswerText))
+        {
+            return BadRequest("Answer cannot be empty.");
+        }
+
+        if (request.OriginalAnswerSubmittedAt == default)
+        {
+            return BadRequest("Original answer submission time is required.");
+        }
+
+        if (request.OriginalAnswerSubmittedAt < request.QuestionShownAt)
+        {
+            return BadRequest(
+                "Original answer submission time cannot be earlier than the question time.");
+        }
+
+        if (request.OriginalAnswerSubmittedAt > DateTime.UtcNow.AddMinutes(5))
+        {
+            return BadRequest(
+                "Original answer submission time is too far in the future.");
+        }
+
+        var normalizedAnswerText = request.AnswerText.Trim();
+
+        var existingAnswer = await _context.UserAnswers
+            .AsNoTracking()
+            .FirstOrDefaultAsync(answer =>
+                answer.SubmissionId == request.SubmissionId);
+
+        if (existingAnswer != null)
+        {
+            return HasConflictingSubmission(existingAnswer, request, normalizedAnswerText)
+                ? Conflict("SubmissionId has already been used for different answer data.")
+                : Ok(new { answerId = existingAnswer.Id });
+        }
+
         var sessionExists = await _context.InterviewSessions
             .AnyAsync(session => session.Id == request.SessionId);
 
@@ -227,29 +268,61 @@ public class InterviewController : ControllerBase
             return NotFound("Session not found.");
         }
 
-        if (string.IsNullOrWhiteSpace(request.AnswerText))
-        {
-            return BadRequest("Answer cannot be empty.");
-        }
-
         var answer = new UserAnswer
         {
+            SubmissionId = request.SubmissionId,
             InterviewSessionId = request.SessionId,
             StageNumber = request.StageNumber,
             StageName = request.StageName,
             QuestionText = request.QuestionText,
-            AnswerText = request.AnswerText.Trim(),
+            AnswerText = normalizedAnswerText,
             QuestionShownAt = request.QuestionShownAt,
-            AnswerSubmittedAt = DateTime.UtcNow
+            AnswerSubmittedAt = request.OriginalAnswerSubmittedAt
         };
 
         _context.UserAnswers.Add(answer);
-        await _context.SaveChangesAsync();
+
+        try
+        {
+            await _context.SaveChangesAsync();
+        }
+        catch (DbUpdateException)
+        {
+            _context.Entry(answer).State = EntityState.Detached;
+
+            existingAnswer = await _context.UserAnswers
+                .AsNoTracking()
+                .FirstOrDefaultAsync(existing =>
+                    existing.SubmissionId == request.SubmissionId);
+
+            if (existingAnswer == null)
+            {
+                throw;
+            }
+
+            return HasConflictingSubmission(existingAnswer, request, normalizedAnswerText)
+                ? Conflict("SubmissionId has already been used for different answer data.")
+                : Ok(new { answerId = existingAnswer.Id });
+        }
 
         return Ok(new
         {
             answerId = answer.Id
         });
+    }
+
+    private static bool HasConflictingSubmission(
+        UserAnswer existingAnswer,
+        SubmitAnswerRequest request,
+        string normalizedAnswerText)
+    {
+        return existingAnswer.InterviewSessionId != request.SessionId ||
+               existingAnswer.StageNumber != request.StageNumber ||
+               !string.Equals(existingAnswer.StageName, request.StageName, StringComparison.Ordinal) ||
+               !string.Equals(existingAnswer.QuestionText, request.QuestionText, StringComparison.Ordinal) ||
+               !string.Equals(existingAnswer.AnswerText, normalizedAnswerText, StringComparison.Ordinal) ||
+               existingAnswer.QuestionShownAt != request.QuestionShownAt ||
+               existingAnswer.AnswerSubmittedAt != request.OriginalAnswerSubmittedAt;
     }
     
     [HttpPut("answers/{answerId:int}/revision")]

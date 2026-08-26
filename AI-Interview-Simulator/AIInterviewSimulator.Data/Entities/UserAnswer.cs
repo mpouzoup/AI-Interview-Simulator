@@ -6,6 +6,7 @@ namespace AIInterviewSimulator.Data.Entities;
 public class UserAnswer
 {
     public int Id { get; set; }
+    public Guid SubmissionId { get; set; }
     
     public Guid InterviewSessionId { get; set; }
     public InterviewSession? InterviewSession { get; set; }
