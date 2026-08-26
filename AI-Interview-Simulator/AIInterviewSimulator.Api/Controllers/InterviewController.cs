@@ -1,8 +1,10 @@
+using System.Security.Cryptography;
 using AIInterviewSimulator.Api.DTOs.Requests;
 using AIInterviewSimulator.Data.Context;
 using AIInterviewSimulator.Data.Entities;
 using AIInterviewSimulator.Engine.Managers;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 
 namespace AIInterviewSimulator.Api.Controllers;
@@ -47,41 +49,77 @@ public class InterviewController : ControllerBase
     public async Task<IActionResult> StartSession(
         [FromBody] StartSessionRequest request)
     {
-        var userExists = await _context.Users
-            .AnyAsync(user => user.Id == request.UserId);
+        await _context.Database.OpenConnectionAsync();
 
-        if (!userExists)
+        try
         {
-            return NotFound("User not found.");
+            var connection =
+                (SqliteConnection)_context.Database.GetDbConnection();
+
+            await using var sqliteTransaction =
+                connection.BeginTransaction(deferred: false);
+
+            await using var efTransaction =
+                await _context.Database.UseTransactionAsync(sqliteTransaction);
+
+            var userExists = await _context.Users
+                .AnyAsync(user => user.Id == request.UserId);
+
+            if (!userExists)
+            {
+                return NotFound("User not found.");
+            }
+
+            var existingSession = await _context.InterviewSessions
+                .AnyAsync(session => session.UserId == request.UserId);
+
+            if (existingSession)
+            {
+                return Conflict(
+                    "Ο συγκεκριμένος χρήστης έχει ήδη συμμετάσχει σε συνέντευξη.");
+            }
+
+            var conditionCounts = await _context.InterviewSessions
+                .GroupBy(session => session.Condition)
+                .Select(group => new
+                {
+                    Condition = group.Key,
+                    Count = group.Count()
+                })
+                .ToDictionaryAsync(
+                    item => item.Condition,
+                    item => item.Count);
+
+            conditionCounts.TryGetValue("A", out var countA);
+            conditionCounts.TryGetValue("B", out var countB);
+
+            var condition = countA < countB
+                ? "A"
+                : countB < countA
+                    ? "B"
+                    : RandomNumberGenerator.GetInt32(2) == 0
+                        ? "A"
+                        : "B";
+
+            var session = new InterviewSession
+            {
+                Id = Guid.NewGuid(),
+                UserId = request.UserId,
+                Condition = condition,
+                StartedAt = DateTime.UtcNow
+            };
+
+            _context.InterviewSessions.Add(session);
+            await _context.SaveChangesAsync();
+
+            await efTransaction.CommitAsync();
+
+            return Ok(session);
         }
-
-        var existingSession = await _context.InterviewSessions
-            .FirstOrDefaultAsync(session => session.UserId == request.UserId);
-
-        if (existingSession != null)
+        finally
         {
-            return Conflict(
-                "Ο συγκεκριμένος χρήστης έχει ήδη συμμετάσχει σε συνέντευξη.");
+            await _context.Database.CloseConnectionAsync();
         }
-
-        var totalSessions = await _context.InterviewSessions.CountAsync();
-
-        var condition = totalSessions % 2 == 0
-            ? "A"
-            : "B";
-
-        var session = new InterviewSession
-        {
-            Id = Guid.NewGuid(),
-            UserId = request.UserId,
-            Condition = condition,
-            StartedAt = DateTime.UtcNow
-        };
-
-        _context.InterviewSessions.Add(session);
-        await _context.SaveChangesAsync();
-
-        return Ok(session);
     }
 
     [HttpGet("sessions/{sessionId:guid}/next-question")]

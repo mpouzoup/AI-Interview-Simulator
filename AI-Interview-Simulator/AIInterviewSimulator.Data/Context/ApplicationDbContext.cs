@@ -20,6 +20,10 @@ public class ApplicationDbContext : DbContext
             .WithMany(u => u.Sessions)
             .HasForeignKey(s => s.UserId);
 
+        modelBuilder.Entity<InterviewSession>()
+            .HasIndex(s => s.UserId)
+            .IsUnique();
+
         modelBuilder.Entity<UserAnswer>()
             .HasOne(a => a.InterviewSession)
             .WithMany(s => s.Answers)
