@@ -1,0 +1,101 @@
+[
+  {
+    "id": "S01_instructions_consent",
+    "file": "screenshots/S01_instructions_consent.png",
+    "condition": "A/B",
+    "description": "Actual initial instructions, limitations, synthetic consent and form",
+    "capturedAt": "2026-10-29T16:36:41.774Z",
+    "source": "Actual Blazor frontend; isolated SQLite; provider stub only",
+    "sha256": "8457f733fa2d831c17d1d66e097c31ab71540e6246b72a657fcc5ac97d8baf1d"
+  },
+  {
+    "id": "S02_A_question_invocation",
+    "file": "screenshots/S02_A_question_invocation.png",
+    "condition": "A",
+    "description": "First question and explicit answer submission",
+    "capturedAt": "2026-10-29T16:36:43.643Z",
+    "source": "Actual Blazor frontend; isolated SQLite; provider stub only",
+    "sha256": "74797d01bb5ca382fc4abd4bc55a09c54cd7a8fb269e6abae587d1452eb5bedd"
+  },
+  {
+    "id": "S03_A_contextual_feedback",
+    "file": "screenshots/S03_A_contextual_feedback.png",
+    "condition": "A",
+    "description": "Problem and Action evidence with conservative request for outcome",
+    "capturedAt": "2026-10-29T16:36:44.918Z",
+    "source": "Actual Blazor frontend; isolated SQLite; provider stub only",
+    "sha256": "3822a24839fbf09e1ccd901326362a0dad6a6ecefc8dab74566f15e02cf133d5"
+  },
+  {
+    "id": "S04_A_revision_editor",
+    "file": "screenshots/S04_A_revision_editor.png",
+    "condition": "A",
+    "description": "Single optional revision editor with original answer prefilled",
+    "capturedAt": "2026-10-29T16:36:45.417Z",
+    "source": "Actual Blazor frontend; isolated SQLite; provider stub only",
+    "sha256": "e62b78d694af26018b6c69a9bdbed940fd825c9d93041a100aa79ff45af7e9d0"
+  },
+  {
+    "id": "S05_A_second_feedback",
+    "file": "screenshots/S05_A_second_feedback.png",
+    "condition": "A",
+    "description": "Revised-answer feedback and only Continue; no third answer",
+    "capturedAt": "2026-10-29T16:36:46.019Z",
+    "source": "Actual Blazor frontend; isolated SQLite; provider stub only",
+    "sha256": "045fd2583eee149ed1d770be5a197e9277943788178a78d9167a13f00d724881"
+  },
+  {
+    "id": "S06_A_refresh_recovery",
+    "file": "screenshots/S06_A_refresh_recovery.png",
+    "condition": "A",
+    "description": "Refresh recovers current stage and round; previous-stage chat is absent",
+    "capturedAt": "2026-10-29T16:36:46.540Z",
+    "source": "Actual Blazor frontend; isolated SQLite; provider stub only",
+    "sha256": "d38916795b6640b038e7f6c6a5efd6c59c9b537f0a24b7abbf3f396f06032884"
+  },
+  {
+    "id": "S07_completion",
+    "file": "screenshots/S07_completion.png",
+    "condition": "A",
+    "description": "Actual completion after seventh question",
+    "capturedAt": "2026-10-29T16:36:48.203Z",
+    "source": "Actual Blazor frontend; isolated SQLite; provider stub only",
+    "sha256": "ea7c66011fe40c751a8f71eabb6f8821a55faa34d9a7eb593dc4bfd5f8fa487e"
+  },
+  {
+    "id": "S08_A_uncertain_fallback",
+    "file": "screenshots/S08_A_uncertain_fallback.png",
+    "condition": "A",
+    "description": "Actual neutral fallback for unrelated free text at question 3",
+    "capturedAt": "2026-10-29T16:36:51.229Z",
+    "source": "Actual Blazor frontend; isolated SQLite; provider stub only",
+    "sha256": "7b0d60a8ee68cb7c04cbc2a09accc522d1e58da46905dc4766092013d7fd47f2"
+  },
+  {
+    "id": "S09_B_stub_feedback",
+    "file": "screenshots/S09_B_stub_feedback.png",
+    "condition": "B",
+    "description": "Actual B feedback UI fed by local stub; not a real Gemini output",
+    "capturedAt": "2026-10-29T16:36:53.653Z",
+    "source": "Actual Blazor frontend; isolated SQLite; provider stub only",
+    "sha256": "add4bb8d747e8135ce20202c606ee1402a2f3dc539518cc38ec16e89191bbe02"
+  },
+  {
+    "id": "S10_B_failure_retry",
+    "file": "screenshots/S10_B_failure_retry.png",
+    "condition": "B",
+    "description": "Provider failure preserves revision and offers feedback-only retry",
+    "capturedAt": "2026-10-29T16:36:54.376Z",
+    "source": "Actual Blazor frontend; isolated SQLite; provider stub only",
+    "sha256": "37998bfdeb774cbadbe01a269bf0db0d9d9c7905e26eeef9c93e4e55381f4b75"
+  },
+  {
+    "id": "S11_B_retry_success",
+    "file": "screenshots/S11_B_retry_success.png",
+    "condition": "B",
+    "description": "Recovery after provider failure; second feedback with only Continue",
+    "capturedAt": "2026-10-29T16:36:54.880Z",
+    "source": "Actual Blazor frontend; isolated SQLite; provider stub only",
+    "sha256": "cb8ecc5710daec571f605fe04472a63b8c8c6d97c484fc1243a565f2c303cfe8"
+  }
+]

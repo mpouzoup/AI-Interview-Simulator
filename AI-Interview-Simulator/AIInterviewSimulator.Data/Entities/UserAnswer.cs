@@ -29,6 +29,34 @@ public class UserAnswer
     public string? RevisedAnswerText { get; set; }
     public DateTime? RevisionSubmittedAt { get; set; }
 
+    // V2 only. Browser times are observations, not proof of reading or attention.
+    public string? RevisedFeedbackText { get; set; }
+    public DateTime? FeedbackReadyAt { get; set; }
+    public DateTime? RevisedFeedbackReadyAt { get; set; }
+    public DateTime? FeedbackDisplayAcknowledgedAt { get; set; }
+    public DateTime? RevisedFeedbackDisplayAcknowledgedAt { get; set; }
+    public DateTime? FeedbackBrowserDisplayedAt { get; set; }
+    public DateTime? RevisedFeedbackBrowserDisplayedAt { get; set; }
+    public DateTime? QuestionBrowserDisplayedAt { get; set; }
+    public DateTime? OriginalBrowserSubmittedAt { get; set; }
+    public DateTime? RevisionEditorBrowserDisplayedAt { get; set; }
+    public DateTime? RevisionBrowserSubmittedAt { get; set; }
+    public DateTime? StageCompletedAt { get; set; }
+    public DateTime? FeedbackLeaseUntil { get; set; }
+    public double? OriginalWritingMilliseconds { get; set; }
+    public double? RevisionWritingMilliseconds { get; set; }
+    public double? DecisionMilliseconds { get; set; }
+    public double? RevisedFeedbackReadingMilliseconds { get; set; }
+    public double? StageElapsedMilliseconds { get; set; }
+    public double? FeedbackWaitMilliseconds { get; set; }
+    public double? RevisedFeedbackWaitMilliseconds { get; set; }
+    public double? FeedbackGenerationMilliseconds { get; set; }
+    public double? RevisedFeedbackGenerationMilliseconds { get; set; }
+    public int? FeedbackGenerationAttempts { get; set; }
+    public int? RevisedFeedbackGenerationAttempts { get; set; }
+    public int? FeedbackLeaseRound { get; set; }
+    public Guid? FeedbackLeaseId { get; set; }
+
     public double ResponseLatencyInSeconds => (AnswerSubmittedAt - QuestionShownAt).TotalSeconds;
     
     public double? DecisionLatencyInSeconds =>

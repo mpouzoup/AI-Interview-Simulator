@@ -1,0 +1,64 @@
+AIInterviewSimulator.Client/Pages/Home.razor
+0094             @if (!string.IsNullOrWhiteSpace(enrollmentError)) { <MudAlert Severity="Severity.Error">@enrollmentError</MudAlert> }
+0095         </MudCard>
+0096     }
+0097     else
+0098     {
+0099         <MudPaper Elevation="3" Class="pa-4 mb-4 rounded-lg" Style="background-color: #f8fafc;">
+0100             <div style="display:flex; justify-content:space-between; align-items:center;" class="mb-2">
+0101                 <MudText Typo="Typo.subtitle1" Style="font-weight: 700; color: #0f172a;">
+0102                     Στάδιο @currentStage από 7
+0103                 </MudText>
+0104             </div>
+0105             <MudProgressLinear Color="Color.Primary" Value="@((currentStage / 7.0) * 100)" Class="rounded" Size="Size.Medium" />
+0106         </MudPaper>
+0107 
+0108         <MudPaper Elevation="2" id="chat-container" Style="height: 500px; overflow-y: auto; padding: 20px; background-color: #ffffff; border-radius: 12px; border: 1px solid #e2e8f0;">
+0109             <div style="display: flex; flex-direction: column; gap: 16px;">
+0110                 @foreach (var msg in chatMessages)
+0111                 {
+0112                     var isUser = msg.IsUser;
+0113                     <div style="display: flex; justify-content: @(isUser ? "flex-end" : "flex-start"); gap: 10px;">
+0114                         @if (!isUser)
+0115                         {
+0116                             <MudAvatar Color="Color.Primary" Variant="Variant.Filled" Size="Size.Medium">
+0117                                 <MudIcon Icon="@Icons.Material.Filled.BusinessCenter" />
+0118                             </MudAvatar>
+0119                         }
+0120 
+0121                         <div style="background-color: @(isUser ? "#2563eb" : "#f1f5f9"); 
+0122                                     color: @(isUser ? "#ffffff" : "#0f172a"); 
+0123                                     padding: 14px 18px; 
+0124                                     border-radius: 16px; 
+0125                                     max-width: 75%;
+0126                                     min-width: 0;
+0127                                     overflow-wrap: anywhere;
+0128                                     font-size: 15px; 
+0129                                     line-height: 1.6;
+0130                                     box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
+0131                             <span style="font-weight: 700; display: block; margin-bottom: 4px; font-size: 11px; color: @(isUser ? "#bfdbfe" : "#64748b"); text-transform: uppercase;">
+0132                                 @(isUser ? nickname : "ΣΥΝΕΝΤΕΥΚΤΗΣ")
+0133                             </span>
+0134                             @msg.Text
+0135                         </div>
+0136 
+0137                         @if (isUser)
+0138                         {
+0139                             <MudAvatar Color="Color.Secondary" Variant="Variant.Filled" Size="Size.Medium">
+0140                                 <MudIcon Icon="@Icons.Material.Filled.Person" />
+0141                             </MudAvatar>
+0142                         }
+0143                     </div>
+0144                 }
+0145 
+0146                 @if (isBotTyping)
+0147                 {
+0148                     <div style="display: flex; gap: 10px; align-items: center;">
+0149                         <MudAvatar Color="Color.Primary" Variant="Variant.Filled" Size="Size.Medium">
+0150                             <MudIcon Icon="@Icons.Material.Filled.BusinessCenter" />
+0151                         </MudAvatar>
+0152                         <MudText Typo="Typo.body2" Style="color: #64748b; font-style: italic;">
+0153                             Ο συνεντεύκτης πληκτρολογεί...
+0154                         </MudText>
+0155                     </div>
+0156                 }

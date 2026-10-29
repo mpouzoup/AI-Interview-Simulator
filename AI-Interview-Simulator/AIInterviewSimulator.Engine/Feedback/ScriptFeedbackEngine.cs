@@ -8,24 +8,55 @@ public class ScriptFeedbackEngine : IFeedbackEngine
         int stageNumber,
         UserAnswer answer)
     {
-        string feedback = stageNumber switch
+        return Task.FromResult(AnalyzeAnswer(stageNumber, answer.AnswerText).Text);
+    }
+
+    internal static ScriptFeedbackAnalysis AnalyzeAnswer(int stageNumber, string? answerText)
+    {
+        if (stageNumber == 3) return AnalyzeProblemAnswer(answerText);
+        if (!ScriptFeedbackDefinitions.Stages.TryGetValue(stageNumber, out var stage))
+            return new(Array.Empty<CriterionEvidence>(), "unknown", "Ευχαριστούμε για την απάντησή σας.");
+        try
         {
-            1 => "Καλή αρχή. Προσπαθήστε στην αυτοπαρουσίασή σας να αναφέρετε σύντομα το υπόβαθρο, τις βασικές δεξιότητες και τον επαγγελματικό σας στόχο.",
+            return AnalyzeStage(stageNumber, stage, GreekTextMatcher.Normalize(answerText));
+        }
+        catch (System.Text.RegularExpressions.RegexMatchTimeoutException)
+        {
+            return AnalyzeStage(stageNumber, stage, string.Empty);
+        }
+    }
 
-            2 => "Η απάντησή σας μπορεί να γίνει πιο δυνατή αν συνδέσετε τα κίνητρά σας με τη συγκεκριμένη θέση και με όσα γνωρίζετε για την εταιρεία.",
+    private static ScriptFeedbackAnalysis AnalyzeStage(int stageNumber, ScriptFeedbackDefinitions.Stage stage, string text)
+    {
+        var criteria = stage.Criteria.Select(c =>
+            GreekTextMatcher.Evaluate(c.Id, text, c.Patterns, c.Denial, c.AllowIntent)
+                with { Required = c.Required }).ToArray();
+        var feedback = ScriptFeedbackDefinitions.Select(stageNumber, stage, criteria);
+        return new(Array.AsReadOnly(criteria), feedback.Id, feedback.Text);
+    }
 
-            3 => "Προσπαθήστε να υποστηρίξετε την απάντησή σας με ένα συγκεκριμένο παράδειγμα από σπουδές, εργασία ή προσωπικό έργο.",
+    internal static ScriptFeedbackAnalysis AnalyzeProblemAnswer(string? answerText)
+    {
+        try
+        {
+            return AnalyzeNormalizedProblemAnswer(GreekTextMatcher.Normalize(answerText));
+        }
+        catch (System.Text.RegularExpressions.RegexMatchTimeoutException)
+        {
+            // A matcher budget exhaustion must never become a positive inference.
+            return AnalyzeNormalizedProblemAnswer(string.Empty);
+        }
+    }
 
-            4 => "Μια οργανωμένη απάντηση με σαφή περιγραφή της κατάστασης, των ενεργειών σας και του αποτελέσματος θα είναι πιο αποτελεσματική.",
-
-            5 => "Αναφέρετε τόσο το πρόβλημα που αντιμετωπίσατε όσο και τον τρόπο με τον οποίο το διαχειριστήκατε.",
-
-            6 => "Περιγράψτε με σαφήνεια την αποτυχία ή τη δυσκολία που αντιμετωπίσατε, τον τρόπο με τον οποίο προσαρμοστήκατε και τι μάθατε από την εμπειρία.",
-
-            7 => "Προσπαθήστε να διατυπώσετε έναν σαφή επαγγελματικό στόχο και να εξηγήσετε πώς η συγκεκριμένη θέση μπορεί να συμβάλει στην επίτευξή του και στην επαγγελματική σας εξέλιξη.",
-            _ => "Ευχαριστούμε για την απάντησή σας."
+    private static ScriptFeedbackAnalysis AnalyzeNormalizedProblemAnswer(string text)
+    {
+        CriterionEvidence[] criteria =
+        {
+            GreekTextMatcher.Evaluate("Problem", text, ScriptFeedbackDefinitions.Problem, ScriptFeedbackDefinitions.ProblemDenial),
+            GreekTextMatcher.Evaluate("Action", text, ScriptFeedbackDefinitions.Action, ScriptFeedbackDefinitions.ActionDenial),
+            GreekTextMatcher.Evaluate("Result", text, ScriptFeedbackDefinitions.Result, ScriptFeedbackDefinitions.ResultDenial)
         };
-
-        return Task.FromResult(feedback);
+        var feedback = ScriptFeedbackDefinitions.Select(criteria);
+        return new(Array.AsReadOnly(criteria), feedback.Id, feedback.Text);
     }
 }

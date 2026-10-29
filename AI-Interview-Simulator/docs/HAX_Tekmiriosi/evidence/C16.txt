@@ -1,0 +1,10 @@
+AIInterviewSimulator.Api/Controllers/InterviewController.Study.cs
+0031     [HttpGet("participant")]
+0032     public async Task<IActionResult> ParticipantProfile()
+0033     {
+0034         var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!, CultureInfo.InvariantCulture);
+0035         var user = await _context.Users.AsNoTracking().SingleAsync(u => u.Id == userId);
+0036         var session = await _context.InterviewSessions.AsNoTracking().SingleOrDefaultAsync(s => s.UserId == userId);
+0037         Response.Headers.CacheControl = "no-store";
+0038         return Ok(new { userId, user.Nickname, sessionId = session?.Id, condition = session?.Condition, flowVersion = session?.FlowVersion });
+0039     }

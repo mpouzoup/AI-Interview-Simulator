@@ -1,0 +1,79 @@
+@inject HttpClient Http
+
+@if (loading)
+{
+    <MudProgressCircular Indeterminate="true" />
+}
+else if (!string.IsNullOrWhiteSpace(error))
+{
+    <MudAlert Severity="Severity.Error">@error</MudAlert>
+    <MudButton OnClick="Load">Επανάληψη ανάκτησης</MudButton>
+}
+else
+{
+    @foreach (var form in forms.Where(f => f.CompletedAt == null))
+    {
+        <MudPaper Class="pa-4 mb-4">
+            <MudText Typo="Typo.h6">@form.Title</MudText>
+            <MudText Style="white-space: pre-wrap">@form.Instructions</MudText>
+            @foreach (var item in form.Items)
+            {
+                <MudNumericField T="double?" Label="@item.Text" Value="@Value(form.Id, item.Code)"
+                    ValueChanged="@(value => SetValue(form.Id, item.Code, value))" Min="@item.Minimum" Max="@item.Maximum"
+                    Step="@item.Step" Required="true" Disabled="@(saving || pending.ContainsKey(form.Id))" />
+            }
+            <MudButton OnClick="@(() => Submit(form))" Disabled="@(saving || form.Items.Any(i => Value(form.Id, i.Code) == null))">Υποβολή ερωτηματολογίου</MudButton>
+        </MudPaper>
+    }
+    @if (forms.All(f => f.CompletedAt != null || !f.Required))
+    {
+        <MudButton OnClick="@(() => OnCompleted.InvokeAsync())">Συνέχεια</MudButton>
+    }
+}
+
+@code {
+    [Parameter] public Guid SessionId { get; set; }
+    [Parameter] public string Phase { get; set; } = "";
+    [Parameter] public EventCallback OnCompleted { get; set; }
+    private bool loading;
+    private bool saving;
+    private string? error;
+    private List<FormDefinition> forms = new();
+    private readonly Dictionary<(Guid, string), double?> values = new();
+    private readonly Dictionary<Guid, object> pending = new();
+    private (Guid, string) loaded;
+    private sealed class Item { public string Code { get; set; } = ""; public string Text { get; set; } = ""; public double Minimum { get; set; } public double Maximum { get; set; } public double Step { get; set; } }
+    private sealed class FormDefinition { public Guid Id { get; set; } public string Title { get; set; } = ""; public string Instructions { get; set; } = ""; public bool Required { get; set; } public DateTime? CompletedAt { get; set; } public List<Item> Items { get; set; } = new(); }
+    protected override async Task OnParametersSetAsync()
+    {
+        if (loaded != (SessionId, Phase)) { loaded = (SessionId, Phase); values.Clear(); pending.Clear(); await Load(); }
+    }
+    private double? Value(Guid id, string code) => values.GetValueOrDefault((id, code));
+    private void SetValue(Guid id, string code, double? value) => values[(id, code)] = value;
+    private async Task Load()
+    {
+        loading = true; error = null;
+        try
+        {
+            forms = await Http.GetFromJsonAsync<List<FormDefinition>>($"api/Interview/sessions/{SessionId}/questionnaires/{Phase}") ?? new();
+        }
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException) { error = "Δεν ολοκληρώθηκε η ανάκτηση. Οι ήδη αποθηκευμένες απαντήσεις διατηρούνται."; }
+        finally { loading = false; }
+    }
+    private async Task Submit(FormDefinition form)
+    {
+        if (saving) return;
+        saving = true;
+        try
+        {
+            if (!pending.ContainsKey(form.Id)) pending[form.Id] = new { submissionId = Guid.NewGuid(),
+                answers = form.Items.Select(i => new { itemCode = i.Code, value = Value(form.Id, i.Code) }).ToArray() };
+            using var response = await Http.PutAsJsonAsync($"api/Interview/questionnaires/{form.Id}", pending[form.Id]);
+            response.EnsureSuccessStatusCode();
+            pending.Remove(form.Id);
+            await Load();
+        }
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException) { error = "Η υποβολή δεν επιβεβαιώθηκε. Ανακτήστε τη φόρμα και επαναλάβετε την ίδια υποβολή."; }
+        finally { saving = false; }
+    }
+}

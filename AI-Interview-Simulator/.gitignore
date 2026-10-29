@@ -1,0 +1,25 @@
+# Isolated local test databases and Data Protection keys
+**/.local-test/
+
+# Local secrets, private key material and backups
+**/.aws/
+**/.ssh/
+**/secrets/
+*.pem
+*.key
+*.p12
+*.bak
+*.backup
+*.sqlite-shm
+*.sqlite-wal
+*.sqlite-journal
+*.sqlite3-shm
+*.sqlite3-wal
+*.sqlite3-journal
+appsettings.Local.json
+appsettings.*.local.json
+
+# Personal Word deliverables and packaged copies; Markdown sources remain tracked
+/docs/HAX_Tekmiriosi.zip
+/docs/HAX_Tekmiriosi/HAX_AI_Interview_Simulator.docx
+/docs/hax/HAX_AI_Interview_Simulator.docx

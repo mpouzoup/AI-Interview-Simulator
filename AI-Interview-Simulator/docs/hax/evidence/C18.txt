@@ -1,0 +1,22 @@
+AIInterviewSimulator.Engine/Managers/InterviewManager.cs
+0015     public async Task<string> GetNextQuestionAsync(
+0016         string condition,
+0017         int stageNumber,
+0018         List<UserAnswer> previousAnswers)
+0019     {
+0020         var normalizedCondition = condition
+0021             .Trim()
+0022             .ToUpperInvariant();
+0023 
+0024         if (normalizedCondition != "A" &&
+0025             normalizedCondition != "B")
+0026         {
+0027             throw new ArgumentException(
+0028                 "Condition must be A or B.",
+0029                 nameof(condition));
+0030         }
+0031 
+0032         return await _scriptEngine.GetNextQuestionAsync(
+0033             stageNumber,
+0034             previousAnswers);
+0035     }

@@ -1,0 +1,69 @@
+AIInterviewSimulator.Engine/Feedback/GreekTextMatcher.cs
+0009 // These are evidence states, not grades or claims of semantic understanding.
+0010 internal enum CriterionState { Uncertain, Detected }
+0011 internal enum EvidenceReason { NoReliableEvidence, MatchedPattern, ExplicitNonAnswer, NegatedEvidence, ConflictingEvidence }
+0012 internal sealed record CriterionEvidence(string CriterionId, CriterionState State, EvidenceReason Reason, string? PatternId = null, bool Required = true);
+0013 internal sealed record ScriptFeedbackAnalysis(IReadOnlyList<CriterionEvidence> Criteria, string FeedbackId, string Text);
+0014 
+0015 internal static class GreekTextMatcher
+0016 {
+0017     internal static string Normalize(string? text)
+0018     {
+0019         var builder = new StringBuilder();
+0020         foreach (var character in (text ?? string.Empty).Normalize(NormalizationForm.FormD))
+0021             if (CharUnicodeInfo.GetUnicodeCategory(character) != UnicodeCategory.NonSpacingMark)
+0022                 builder.Append(character);
+0023         return builder.ToString().Normalize(NormalizationForm.FormC).ToLowerInvariant().Replace('ς', 'σ');
+0024     }
+0025 
+0026     internal static bool Matches(string text, string pattern) => Regex.IsMatch(text,
+0027         pattern, RegexOptions.CultureInvariant, TimeSpan.FromMilliseconds(100));
+0028 
+0029     internal static CriterionEvidence Evaluate(string id, string text,
+0030         IReadOnlyList<(string Id, string Pattern)> patterns, string denial, bool allowIntent = false)
+0031     {
+0032         // Do not treat quoted examples, questions or hypothetical advice as autobiographical evidence.
+0033         var unquoted = Regex.Replace(text, "«[^»]*»|\"[^\"]*\"|“[^”]*”", " ",
+0034             RegexOptions.CultureInvariant, TimeSpan.FromMilliseconds(100));
+0035         string? matched = null;
+0036         var negated = false;
+0037         var affirmedExpressions = new HashSet<string>(StringComparer.Ordinal);
+0038         var negatedExpressions = new HashSet<string>(StringComparer.Ordinal);
+0039         var denied = false;
+0040         foreach (var clause in Regex.Split(unquoted, @"(?<=[.!?;;])|[\r\n]+|\bαλλα\b|\bομωσ\b"))
+0041         {
+0042             if (clause.TrimEnd().EndsWith('?') || clause.TrimEnd().EndsWith(';') || clause.TrimEnd().EndsWith(';')) continue;
+0043             // Future intentions are appropriate for goals/motivation, but not evidence of past actions.
+0044             if (Matches(clause, @"\b(αν|εαν|ισωσ)\b")) continue;
+0045             // A retrospective lesson is not generic advice ("έμαθα ότι πρέπει...").
+0046             if (Matches(clause, @"\bπρεπει\b") &&
+0047                 !Matches(clause, @"\b(?:εμαθα|καταλαβα|συνειδητοποιησα)\s+οτι\s+πρεπει\b")) continue;
+0048             if (!allowIntent && Matches(clause, @"\b(θα|μπορω|μπορουμε|μπορουσα να)\b")) continue;
+0049             denied |= Matches(clause, denial);
+0050             foreach (var pattern in patterns)
+0051             {
+0052                 foreach (Match match in Regex.Matches(clause, pattern.Pattern,
+0053                     RegexOptions.CultureInvariant, TimeSpan.FromMilliseconds(100)))
+0054                 {
+0055                     var prefix = clause[..match.Index];
+0056                     // Only local negation: a negation in a different sentence must not erase evidence.
+0057                     if (Matches(prefix, @"\b(δεν|μην|μη|ουτε|χωρισ να)\s+(?:\p{L}+\s+){0,2}$"))
+0058                     {
+0059                         negated = true;
+0060                         negatedExpressions.Add(Regex.Replace(match.Value, @"\s+", " "));
+0061                     }
+0062                     else
+0063                     {
+0064                         matched ??= pattern.Id;
+0065                         affirmedExpressions.Add(Regex.Replace(match.Value, @"\s+", " "));
+0066                     }
+0067                 }
+0068             }
+0069         }
+0070         if (matched != null && (denied || affirmedExpressions.Overlaps(negatedExpressions)))
+0071             return new(id, CriterionState.Uncertain, EvidenceReason.ConflictingEvidence);
+0072         if (denied) return new(id, CriterionState.Uncertain, EvidenceReason.ExplicitNonAnswer);
+0073         if (matched != null) return new(id, CriterionState.Detected, EvidenceReason.MatchedPattern, matched);
+0074         return new(id, CriterionState.Uncertain,
+0075             negated ? EvidenceReason.NegatedEvidence : EvidenceReason.NoReliableEvidence);
+0076     }

@@ -1,0 +1,76 @@
+AIInterviewSimulator.Client/Pages/Home.razor
+0012 <MudContainer MaxWidth="MaxWidth.Medium" Class="my-6">
+0013 
+0014     @if (!isSessionStarted)
+0015     {
+0016         <MudCard Elevation="4" Class="pa-6 rounded-lg">
+0017             <MudText Typo="Typo.h4" Align="Align.Center" GutterBottom="true" Style="font-weight:700; color:#1e293b;">
+0018                 Προσομοίωση Συνέντευξης Εργασίας
+0019             </MudText>
+0020             <MudText Typo="Typo.body1" Align="Align.Center" Class="mb-6" Style="color:#64748b;">
+0021                 Παρακαλούμε συμπληρώστε τα παρακάτω στοιχεία για να ξεκινήσει η διαδικασία (7 στάδια).
+0022             </MudText>
+0023             
+0024             <MudAlert Severity="Severity.Info"
+0025                       Variant="Variant.Outlined"
+0026                       Class="mb-6"
+0027                       Style="border-radius: 8px;">
+0028 
+0029                 <MudText Typo="Typo.subtitle2" Style="font-weight:700;" Class="mb-2">
+0030                     Πώς λειτουργεί η προσομοίωση
+0031                 </MudText>
+0032 
+0033                 <MudText Typo="Typo.body2">
+0034                     Η προσομοίωση αποτελείται από 7 στάδια συνέντευξης εργασίας.
+0035                     Σε κάθε στάδιο θα σας παρουσιάζεται μία ερώτηση και, αφού υποβάλετε
+0036                     την απάντησή σας, θα λαμβάνετε ανατροφοδότηση από το σύστημα σχετικά
+0037                     με την απάντησή σας.
+0038                     Στη συνέχεια μπορείτε είτε να βελτιώσετε την απάντησή σας είτε
+0039                     να συνεχίσετε στην επόμενη ερώτηση.
+0040                     Επιτρέπεται μία προαιρετική αναθεώρηση ανά ερώτηση. Μετά την αναθεώρηση
+0041                     θα λάβετε νέα ανατροφοδότηση και θα επιλέξετε μόνο «Συνέχεια».
+0042                     Απαντήστε όπως θα απαντούσατε σε μια πραγματική συνέντευξη εργασίας.
+0043                 </MudText>
+0044                 
+0045                 <MudText Typo="Typo.caption"
+0046                          Style="color:#64748b;"
+0047                          Class="mt-3">
+0048                     Η ανατροφοδότηση παρέχεται για σκοπούς εξάσκησης και αυτοβελτίωσης
+0049                     και δεν αποτελεί επίσημη ή αντικειμενική αξιολόγηση επαγγελματικής καταλληλότητας.
+0050                     Ενδέχεται να περιέχει ανακρίβειες, να παραλείπει σημαντικά στοιχεία ή να μην ανταποκρίνεται πλήρως στην απάντησή σας.
+0051                     Αξιοποιήστε τις συμβουλές που θεωρείτε χρήσιμες· δεν είναι υποχρεωτικό να αναθεωρήσετε την απάντησή σας.
+0052                 </MudText>
+0053 
+0054             </MudAlert>
+0055 
+0056             @if (!studyInfo.Enabled)
+0057             {
+0058                 <MudAlert Severity="Severity.Info">Η ερευνητική συλλογή δεν έχει ενεργοποιηθεί. Δεν καταγράφονται νέες συμμετοχές.</MudAlert>
+0059             }
+0060             else
+0061             {
+0062             <MudText Style="white-space: pre-wrap" Class="mb-4">@studyInfo.Text</MudText>
+0063             <MudCheckBox T="bool" @bind-Value="consentAccepted" Label="Διάβασα την ενημέρωση και επιλέγω να συμμετάσχω." />
+0064             <MudForm @ref="form">
+0065                 <MudTextField @bind-Value="nickname" Label="Ψευδώνυμο / Nickname" Required="true" RequiredError="Παρακαλούμε εισαγάγετε ψευδώνυμο." Validation="@(new Func<string, string?>(ValidateNickname))" Variant="Variant.Outlined" Class="mb-4" />
+0066                 
+0067                 <MudNumericField T="int?" @bind-Value="age" Label="Ηλικία" Required="true" RequiredError="Παρακαλούμε εισαγάγετε την ηλικία σας." Validation="@(new Func<int?, string?>(ValidateAge))" Variant="Variant.Outlined" Class="mb-4" />
+0068 
+0069                 <MudSelect T="string" @bind-Value="gender" Label="Φύλο" Required="true" RequiredError="Παρακαλούμε επιλέξτε φύλο." Variant="Variant.Outlined" Class="mb-4">
+0070                     <MudSelectItem Value="@("Male")">Άνδρας</MudSelectItem>
+0071                     <MudSelectItem Value="@("Female")">Γυναίκα</MudSelectItem>
+0072                     <MudSelectItem Value="@("Other")">Άλλο / Προτιμώ να μην πω</MudSelectItem>
+0073                 </MudSelect>
+0074 
+0075                 <MudSelect T="string" @bind-Value="aiFamiliarity" Label="Εξοικείωση με την Τεχνητή Νοημοσύνη (AI)" Required="true" RequiredError="Παρακαλούμε επιλέξτε το επίπεδο εξοικείωσής σας με την Τεχνητή Νοημοσύνη." Variant="Variant.Outlined" Class="mb-6">
+0076                     <MudSelectItem Value="@("Low")">Χαμηλή</MudSelectItem>
+0077                     <MudSelectItem Value="@("Medium")">Μεσαία</MudSelectItem>
+0078                     <MudSelectItem Value="@("High")">Υψηλή</MudSelectItem>
+0079                 </MudSelect>
+0080                 
+0081                 <MudButton Variant="Variant.Filled" Color="Color.Primary" FullWidth="true" Size="Size.Large" OnClick="StartInterview" Disabled="@(isLoading || !consentAccepted)" Style="border-radius: 8px; font-weight:600; text-transform:none; height: 50px;">
+0082                     @if (isLoading)
+0083                     {
+0084                         <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true"/>
+0085                         <MudText Class="ms-2">Έναρξη...</MudText>
+0086                     }

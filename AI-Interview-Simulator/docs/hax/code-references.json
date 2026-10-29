@@ -1,0 +1,170 @@
+[
+  {
+    "id": "C01",
+    "file": "AIInterviewSimulator.Client/Pages/Home.razor",
+    "start": 12,
+    "end": 86,
+    "meaning": "Αρχική ενημέρωση δυνατοτήτων και περιορισμών και συναίνεση",
+    "sha256": "ae116508fe1e013147c8346122aaa6a4a98854b8238f342418e8e09a3a2115bc"
+  },
+  {
+    "id": "C02",
+    "file": "AIInterviewSimulator.Client/Pages/Home.razor",
+    "start": 94,
+    "end": 156,
+    "meaning": "Στάδιο και τοπικά μηνύματα chat και ετικέτα συνεντευκτή",
+    "sha256": "ae116508fe1e013147c8346122aaa6a4a98854b8238f342418e8e09a3a2115bc"
+  },
+  {
+    "id": "C03",
+    "file": "AIInterviewSimulator.Client/Pages/Home.razor",
+    "start": 160,
+    "end": 340,
+    "meaning": "Controls υποβολής αναθεώρησης συνέχειας και retry",
+    "sha256": "ae116508fe1e013147c8346122aaa6a4a98854b8238f342418e8e09a3a2115bc"
+  },
+  {
+    "id": "C04",
+    "file": "AIInterviewSimulator.Client/Pages/Home.razor",
+    "start": 790,
+    "end": 825,
+    "meaning": "ChooseRevision και προγέμισμα αρχικής απάντησης",
+    "sha256": "ae116508fe1e013147c8346122aaa6a4a98854b8238f342418e8e09a3a2115bc"
+  },
+  {
+    "id": "C05",
+    "file": "AIInterviewSimulator.Client/Pages/Home.razor",
+    "start": 1047,
+    "end": 1135,
+    "meaning": "GetFlowV2 και περιορισμένη ανασύνθεση chat μετά από refresh",
+    "sha256": "ae116508fe1e013147c8346122aaa6a4a98854b8238f342418e8e09a3a2115bc"
+  },
+  {
+    "id": "C06",
+    "file": "AIInterviewSimulator.Client/Pages/Home.razor",
+    "start": 1169,
+    "end": 1219,
+    "meaning": "RestoreBrowserSession από authoritative profile",
+    "sha256": "ae116508fe1e013147c8346122aaa6a4a98854b8238f342418e8e09a3a2115bc"
+  },
+  {
+    "id": "C07",
+    "file": "AIInterviewSimulator.Engine/Feedback/ScriptFeedbackEngine.cs",
+    "start": 5,
+    "end": 62,
+    "meaning": "Ντετερμινιστική επιλογή feedback και fallback σε timeout",
+    "sha256": "bf99f7194c541c21271056b400609a3234d3f46254bf49233f103a9a823d707d"
+  },
+  {
+    "id": "C08",
+    "file": "AIInterviewSimulator.Engine/Feedback/GreekTextMatcher.cs",
+    "start": 9,
+    "end": 76,
+    "meaning": "Detected και Uncertain με αιτίες και εσωτερικά PatternId",
+    "sha256": "9ba06f2bc134ad3f11b328ff4d67e2e25de92b2700eb6a2810a10335cbb3713c"
+  },
+  {
+    "id": "C09",
+    "file": "AIInterviewSimulator.Engine/Feedback/ScriptFeedbackDefinitions.cs",
+    "start": 5,
+    "end": 188,
+    "meaning": "Εκδόσεις patterns templates και προτεραιότητες feedback",
+    "sha256": "132190385a4644b7284ac9b44b2831bff766caaf114e2b49412146bac543f04a"
+  },
+  {
+    "id": "C10",
+    "file": "AIInterviewSimulator.Engine/Feedback/LlmFeedbackEngine.cs",
+    "start": 16,
+    "end": 77,
+    "meaning": "Prompt τρέχουσας απάντησης ύφος περιορισμοί και οδηγίες bias",
+    "sha256": "f21c53689f521053aa5cbe218bd349de27706fa8ebe9160da82eccadae6bb746"
+  },
+  {
+    "id": "C11",
+    "file": "AIInterviewSimulator.Engine/Managers/FeedbackManager.cs",
+    "start": 19,
+    "end": 42,
+    "meaning": "Αποκλειστικός διαχωρισμός Α κανόνων και Β LLM",
+    "sha256": "7f78d01bb209f6635f0f02a7000e64485abc7c0b5b7d6c250166ceededdd4c95"
+  },
+  {
+    "id": "C12",
+    "file": "AIInterviewSimulator.Api/Controllers/InterviewController.RevisionFlow.cs",
+    "start": 23,
+    "end": 60,
+    "meaning": "Server κατάσταση τρέχοντος γύρου και μεταβάσεις",
+    "sha256": "962e6a7713178fd899976e67d170584ff73b589e47539d4c529f42dd67599eb3"
+  },
+  {
+    "id": "C13",
+    "file": "AIInterviewSimulator.Api/Controllers/InterviewController.RevisionFlow.cs",
+    "start": 64,
+    "end": 154,
+    "meaning": "Generation lease current round only και αποθήκευση επιτυχίας",
+    "sha256": "962e6a7713178fd899976e67d170584ff73b589e47539d4c529f42dd67599eb3"
+  },
+  {
+    "id": "C14",
+    "file": "AIInterviewSimulator.Api/Controllers/InterviewController.cs",
+    "start": 455,
+    "end": 570,
+    "meaning": "ReviseAnswer και SaveAnswerDecision με μία αναθεώρηση",
+    "sha256": "1d4ddf5579307308463b93fedaabaf8c046fb44d2bfb82a4c3f8059db8c2acbd"
+  },
+  {
+    "id": "C15",
+    "file": "AIInterviewSimulator.Client/wwwroot/js/interview-chat.js",
+    "start": 72,
+    "end": 100,
+    "meaning": "Recovery gateway και επιβεβαίωση τερματισμού χωρίς διαγραφή",
+    "sha256": "1596775afe4f0c00331cb8415b09b1cd27efb73a98516d38c1b0e214401be8e2"
+  },
+  {
+    "id": "C16",
+    "file": "AIInterviewSimulator.Api/Controllers/InterviewController.Study.cs",
+    "start": 31,
+    "end": 39,
+    "meaning": "Server ανάκληση participant credentials",
+    "sha256": "1331c0df90b5a614bc404425da9e163ce073e8166a0b0a550971910e23648bb4"
+  },
+  {
+    "id": "C17",
+    "file": "AIInterviewSimulator.Client/ParticipantClientSecurity.cs",
+    "start": 39,
+    "end": 109,
+    "meaning": "HttpOnly cookie και gateway logout με ανάκληση",
+    "sha256": "326c3ce175001b723a564c9c5f27f1bac82d51e35fd179819fcd4c306b5dec22"
+  },
+  {
+    "id": "C18",
+    "file": "AIInterviewSimulator.Engine/Managers/InterviewManager.cs",
+    "start": 15,
+    "end": 35,
+    "meaning": "Ίδιος question engine στα Α και Β",
+    "sha256": "f561e25278a9febad180e308ad19621e9ae7cf5b98709676ac77b0eb58bb0289"
+  },
+  {
+    "id": "C19",
+    "file": "AIInterviewSimulator.Engine/Services/GeminiService.cs",
+    "start": 23,
+    "end": 112,
+    "meaning": "Τρέχουσα επιλογή μοντέλων timeout και retries",
+    "sha256": "35c20e1838afa48db36d465ffa5d57aab596028d64dd22ba2aea3705c7153a26"
+  },
+  {
+    "id": "C20",
+    "file": "AIInterviewSimulator.Client/Pages/StudyQuestionnaires.razor",
+    "start": 1,
+    "end": 79,
+    "meaning": "Generic υποδομή survey χωρίς per-feedback rating",
+    "sha256": "0af32d95722c8733bddc18792d45b445d1f1bfc83ca2dee4c1ac9626a5d84fba"
+  },
+  {
+    "id": "C21",
+    "file": "AIInterviewSimulator.Tests/BrowserTestHost.cs",
+    "start": 20,
+    "end": 90,
+    "meaning": "Απομονωμένο API test host και stub provider",
+    "sha256": "b95efc412f3151d7bd2a5b62c74837642990c9b64bc0587ad993ad37d814c4a2"
+  }
+]

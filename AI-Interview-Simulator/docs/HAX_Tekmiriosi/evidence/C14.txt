@@ -1,0 +1,117 @@
+AIInterviewSimulator.Api/Controllers/InterviewController.cs
+0455     [HttpPut("answers/{answerId:int}/revision")]
+0456     public async Task<IActionResult> ReviseAnswer(
+0457         int answerId,
+0458         [FromBody] ReviseAnswerRequest request) =>
+0459         await ExecuteAnswerAction(() => ReviseAnswerWithinTransaction(answerId, request));
+0460 
+0461     private async Task<IActionResult> ReviseAnswerWithinTransaction(int answerId, ReviseAnswerRequest request)
+0462     {
+0463         var answer = await _context.UserAnswers
+0464             .FirstOrDefaultAsync(a => a.Id == answerId);
+0465 
+0466         if (answer == null)
+0467         {
+0468             return NotFound("Answer not found.");
+0469         }
+0470 
+0471         if (string.IsNullOrWhiteSpace(request.RevisedAnswerText))
+0472         {
+0473             return BadRequest("Revised answer cannot be empty.");
+0474         }
+0475 
+0476         if (answer.ChoseToRevise != true)
+0477         {
+0478             return BadRequest(
+0479                 "The user must choose to revise before submitting a revised answer.");
+0480         }
+0481 
+0482         if (!string.IsNullOrWhiteSpace(answer.RevisedAnswerText))
+0483         {
+0484             return string.Equals(answer.RevisedAnswerText, request.RevisedAnswerText.Trim(), StringComparison.Ordinal)
+0485                 ? RevisionResult(answer)
+0486                 : Conflict("This answer has already been revised with different text.");
+0487         }
+0488 
+0489         var revisionSession = await _context.InterviewSessions.FindAsync(answer.InterviewSessionId);
+0490         if (revisionSession?.FlowVersion >= 2)
+0491         {
+0492             if (!ValidTiming(request.Timing)) return BadRequest("Invalid browser timing.");
+0493             if (!await IsActiveAnswer(answer) || answer.FeedbackDisplayAcknowledgedAt == null)
+0494                 return Conflict("Revision is not allowed in the current state.");
+0495             answer.RevisionBrowserSubmittedAt = request.Timing?.BrowserOccurredAt;
+0496             answer.RevisionWritingMilliseconds = request.Timing?.ElapsedMilliseconds;
+0497         }
+0498 
+0499         answer.RevisedAnswerText = request.RevisedAnswerText.Trim();
+0500         answer.RevisionSubmittedAt = DateTime.UtcNow;
+0501 
+0502         if (answer.StageNumber >= 7 && revisionSession?.FlowVersion < 2)
+0503         {
+0504             var session = await _context.InterviewSessions
+0505                 .FirstOrDefaultAsync(s => s.Id == answer.InterviewSessionId);
+0506             if (session != null)
+0507             {
+0508                 session.FinishedAt ??= DateTime.UtcNow;
+0509             }
+0510         }
+0511 
+0512         await _context.SaveChangesAsync();
+0513 
+0514         return RevisionResult(answer);
+0515     }
+0516     
+0517     [HttpPut("answers/{answerId:int}/decision")]
+0518     public async Task<IActionResult> SaveAnswerDecision(
+0519         int answerId,
+0520         [FromBody] AnswerDecisionRequest request) =>
+0521         await ExecuteAnswerAction(() => SaveAnswerDecisionWithinTransaction(answerId, request));
+0522 
+0523     private async Task<IActionResult> SaveAnswerDecisionWithinTransaction(int answerId, AnswerDecisionRequest request)
+0524     {
+0525         var answer = await _context.UserAnswers
+0526             .FirstOrDefaultAsync(a => a.Id == answerId);
+0527 
+0528         if (answer == null)
+0529         {
+0530             return NotFound("Answer not found.");
+0531         }
+0532 
+0533         if (answer.ChoseToRevise.HasValue)
+0534         {
+0535             return answer.ChoseToRevise == request.ChoseToRevise
+0536                 ? DecisionResult(answer)
+0537                 : Conflict("A different decision has already been recorded.");
+0538         }
+0539 
+0540         var decisionSession = await _context.InterviewSessions.FindAsync(answer.InterviewSessionId);
+0541         if (decisionSession?.FlowVersion >= 2)
+0542         {
+0543             if (!ValidTiming(request.Timing)) return BadRequest("Invalid browser timing.");
+0544             if (!await IsActiveAnswer(answer) || answer.FeedbackDisplayAcknowledgedAt == null ||
+0545                 !FeedbackResult.IsUsable(answer.FeedbackText))
+0546                 return Conflict("Read the initial feedback before deciding.");
+0547             answer.DecisionMilliseconds = request.Timing?.ElapsedMilliseconds;
+0548             if (!request.ChoseToRevise)
+0549             {
+0550                 answer.StageCompletedAt = DateTime.UtcNow;
+0551                 answer.StageElapsedMilliseconds = request.Timing?.StageElapsedMilliseconds;
+0552             }
+0553         }
+0554 
+0555         answer.ChoseToRevise = request.ChoseToRevise;
+0556         answer.RevisionDecisionAt = DateTime.UtcNow;
+0557 
+0558         if (answer.StageNumber >= 7 && request.ChoseToRevise == false)
+0559         {
+0560             var session = await _context.InterviewSessions
+0561                 .FirstOrDefaultAsync(s => s.Id == answer.InterviewSessionId);
+0562             if (session != null)
+0563             {
+0564                 session.FinishedAt ??= DateTime.UtcNow;
+0565             }
+0566         }
+0567 
+0568         await CompleteStudyIfReady(answer.InterviewSessionId);
+0569         await _context.SaveChangesAsync();
+0570 

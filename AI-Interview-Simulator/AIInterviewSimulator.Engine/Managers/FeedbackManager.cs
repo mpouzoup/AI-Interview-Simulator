@@ -16,10 +16,11 @@ public class FeedbackManager
         _llmFeedbackEngine = llmFeedbackEngine;
     }
 
-    public Task<string> GenerateFeedbackAsync(
+    public async Task<FeedbackResult> GenerateFeedbackAsync(
         string condition,
         int stageNumber,
-        UserAnswer answer)
+        UserAnswer answer,
+        CancellationToken cancellationToken = default)
     {
         string normalizedCondition = condition
             .Trim()
@@ -27,13 +28,13 @@ public class FeedbackManager
 
         return normalizedCondition switch
         {
-            "A" => _scriptFeedbackEngine.GenerateFeedbackAsync(
+            "A" => FeedbackResult.FromText(await _scriptFeedbackEngine.GenerateFeedbackAsync(
                 stageNumber,
-                answer),
+                answer)),
 
-            "B" => _llmFeedbackEngine.GenerateFeedbackAsync(
+            "B" => await _llmFeedbackEngine.GenerateFeedbackAsync(
                 stageNumber,
-                answer),
+                answer, cancellationToken),
 
             _ => throw new ArgumentException(
                 "Condition must be A or B.",

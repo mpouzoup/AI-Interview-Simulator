@@ -1,0 +1,30 @@
+AIInterviewSimulator.Client/wwwroot/js/interview-chat.js
+0072 export async function loadStudy() {
+0073     const response = await fetch('/participant/bootstrap', { credentials: 'same-origin', cache: 'no-store' });
+0074     if (!response.ok) return null;
+0075     const info = await response.json();
+0076     return { ...info.study, signedIn: info.signedIn };
+0077 }
+0078 export async function registerParticipant(body) {
+0079     const bootstrap = await fetch('/participant/bootstrap', { credentials: 'same-origin', cache: 'no-store' });
+0080     if (!bootstrap.ok) return false;
+0081     const info = await bootstrap.json();
+0082     const response = await fetch('/participant/register', { method: 'POST', credentials: 'same-origin',
+0083         headers: { 'Content-Type': 'application/json', 'X-Interview-CSRF': info.csrfToken }, body: JSON.stringify(body) });
+0084     if (!response.ok) return false;
+0085     try { sessionStorage.removeItem(sessionKey); } catch { }
+0086     location.reload(); // New circuit reads the HttpOnly authenticated cookie.
+0087     return true;
+0088 }
+0089 export async function revokeParticipant() {
+0090     if (!confirm('Να τερματιστεί η πρόσβαση; Τα ήδη αποθηκευμένα δεδομένα δεν διαγράφονται.')) return true;
+0091     const bootstrap = await fetch('/participant/bootstrap', { credentials: 'same-origin', cache: 'no-store' });
+0092     if (!bootstrap.ok) return false;
+0093     const info = await bootstrap.json();
+0094     const response = await fetch('/participant/logout', { method: 'POST', credentials: 'same-origin',
+0095         headers: { 'X-Interview-CSRF': info.csrfToken } });
+0096     if (!response.ok) return false;
+0097     try { sessionStorage.removeItem(sessionKey); } catch { }
+0098     location.reload();
+0099     return true;
+0100 }

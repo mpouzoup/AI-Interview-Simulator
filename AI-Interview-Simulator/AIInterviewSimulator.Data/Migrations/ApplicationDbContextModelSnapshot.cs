@@ -15,7 +15,35 @@ namespace AI_Interview_Simulator.Data.Migrations
         protected override void BuildModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
-            modelBuilder.HasAnnotation("ProductVersion", "8.0.12");
+            modelBuilder.HasAnnotation("ProductVersion", "10.0.14");
+
+            modelBuilder.Entity("AIInterviewSimulator.Data.Entities.ConsentRecord", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("AcceptedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("TextHash")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Version")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId")
+                        .IsUnique();
+
+                    b.ToTable("ConsentRecords");
+                });
 
             modelBuilder.Entity("AIInterviewSimulator.Data.Entities.InterviewSession", b =>
                 {
@@ -30,7 +58,15 @@ namespace AI_Interview_Simulator.Data.Migrations
                     b.Property<DateTime?>("FinishedAt")
                         .HasColumnType("TEXT");
 
+                    b.Property<int>("FlowVersion")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER")
+                        .HasDefaultValue(1);
+
                     b.Property<DateTime>("StartedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("StudyCompletedAt")
                         .HasColumnType("TEXT");
 
                     b.Property<int>("UserId")
@@ -42,6 +78,172 @@ namespace AI_Interview_Simulator.Data.Migrations
                         .IsUnique();
 
                     b.ToTable("InterviewSessions");
+                });
+
+            modelBuilder.Entity("AIInterviewSimulator.Data.Entities.ParticipantCredential", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("ExpiresAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("IssuedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("RevokedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("TokenHash")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TokenHash")
+                        .IsUnique();
+
+                    b.HasIndex("UserId")
+                        .IsUnique();
+
+                    b.ToTable("ParticipantCredentials");
+                });
+
+            modelBuilder.Entity("AIInterviewSimulator.Data.Entities.QuestionnaireAdministration", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("CompletedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Condition")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Instructions")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("InterviewSessionId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ItemsSnapshotJson")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Phase")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("Required")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("SubmissionHash")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid?>("SubmissionId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Version")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.HasIndex("InterviewSessionId", "Code", "Version", "Phase")
+                        .IsUnique();
+
+                    b.ToTable("QuestionnaireAdministrations");
+                });
+
+            modelBuilder.Entity("AIInterviewSimulator.Data.Entities.QuestionnaireDefinition", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("Approved")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Instructions")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ItemsJson")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Phase")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("Required")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Version")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Code", "Version", "Phase")
+                        .IsUnique();
+
+                    b.ToTable("QuestionnaireDefinitions");
+                });
+
+            modelBuilder.Entity("AIInterviewSimulator.Data.Entities.QuestionnaireResponse", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<Guid>("AdministrationId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ItemCode")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("SubmittedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<double>("Value")
+                        .HasColumnType("REAL");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AdministrationId", "ItemCode")
+                        .IsUnique();
+
+                    b.ToTable("QuestionnaireResponses");
                 });
 
             modelBuilder.Entity("AIInterviewSimulator.Data.Entities.User", b =>
@@ -89,13 +291,52 @@ namespace AI_Interview_Simulator.Data.Migrations
                     b.Property<bool?>("ChoseToRevise")
                         .HasColumnType("INTEGER");
 
+                    b.Property<double?>("DecisionMilliseconds")
+                        .HasColumnType("REAL");
+
+                    b.Property<DateTime?>("FeedbackBrowserDisplayedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("FeedbackDisplayAcknowledgedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("FeedbackGenerationAttempts")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<double?>("FeedbackGenerationMilliseconds")
+                        .HasColumnType("REAL");
+
+                    b.Property<Guid?>("FeedbackLeaseId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("FeedbackLeaseRound")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime?>("FeedbackLeaseUntil")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("FeedbackReadyAt")
+                        .HasColumnType("TEXT");
+
                     b.Property<DateTime?>("FeedbackShownAt")
                         .HasColumnType("TEXT");
 
                     b.Property<string>("FeedbackText")
                         .HasColumnType("TEXT");
 
+                    b.Property<double?>("FeedbackWaitMilliseconds")
+                        .HasColumnType("REAL");
+
                     b.Property<Guid>("InterviewSessionId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("OriginalBrowserSubmittedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<double?>("OriginalWritingMilliseconds")
+                        .HasColumnType("REAL");
+
+                    b.Property<DateTime?>("QuestionBrowserDisplayedAt")
                         .HasColumnType("TEXT");
 
                     b.Property<DateTime>("QuestionShownAt")
@@ -108,11 +349,50 @@ namespace AI_Interview_Simulator.Data.Migrations
                     b.Property<string>("RevisedAnswerText")
                         .HasColumnType("TEXT");
 
+                    b.Property<DateTime?>("RevisedFeedbackBrowserDisplayedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("RevisedFeedbackDisplayAcknowledgedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("RevisedFeedbackGenerationAttempts")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<double?>("RevisedFeedbackGenerationMilliseconds")
+                        .HasColumnType("REAL");
+
+                    b.Property<double?>("RevisedFeedbackReadingMilliseconds")
+                        .HasColumnType("REAL");
+
+                    b.Property<DateTime?>("RevisedFeedbackReadyAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("RevisedFeedbackText")
+                        .HasColumnType("TEXT");
+
+                    b.Property<double?>("RevisedFeedbackWaitMilliseconds")
+                        .HasColumnType("REAL");
+
+                    b.Property<DateTime?>("RevisionBrowserSubmittedAt")
+                        .HasColumnType("TEXT");
+
                     b.Property<DateTime?>("RevisionDecisionAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("RevisionEditorBrowserDisplayedAt")
                         .HasColumnType("TEXT");
 
                     b.Property<DateTime?>("RevisionSubmittedAt")
                         .HasColumnType("TEXT");
+
+                    b.Property<double?>("RevisionWritingMilliseconds")
+                        .HasColumnType("REAL");
+
+                    b.Property<DateTime?>("StageCompletedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<double?>("StageElapsedMilliseconds")
+                        .HasColumnType("REAL");
 
                     b.Property<string>("StageName")
                         .IsRequired()
@@ -134,6 +414,15 @@ namespace AI_Interview_Simulator.Data.Migrations
                     b.ToTable("UserAnswers");
                 });
 
+            modelBuilder.Entity("AIInterviewSimulator.Data.Entities.ConsentRecord", b =>
+                {
+                    b.HasOne("AIInterviewSimulator.Data.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("AIInterviewSimulator.Data.Entities.InterviewSession", b =>
                 {
                     b.HasOne("AIInterviewSimulator.Data.Entities.User", "User")
@@ -143,6 +432,39 @@ namespace AI_Interview_Simulator.Data.Migrations
                         .IsRequired();
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("AIInterviewSimulator.Data.Entities.ParticipantCredential", b =>
+                {
+                    b.HasOne("AIInterviewSimulator.Data.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("AIInterviewSimulator.Data.Entities.QuestionnaireAdministration", b =>
+                {
+                    b.HasOne("AIInterviewSimulator.Data.Entities.InterviewSession", null)
+                        .WithMany()
+                        .HasForeignKey("InterviewSessionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("AIInterviewSimulator.Data.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("AIInterviewSimulator.Data.Entities.QuestionnaireResponse", b =>
+                {
+                    b.HasOne("AIInterviewSimulator.Data.Entities.QuestionnaireAdministration", null)
+                        .WithMany()
+                        .HasForeignKey("AdministrationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("AIInterviewSimulator.Data.Entities.UserAnswer", b =>

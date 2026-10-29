@@ -1,0 +1,182 @@
+AIInterviewSimulator.Client/Pages/Home.razor
+0160         <div class="interview-actions mt-4">
+0161             @if (interviewState is InterviewUiState.PreQuestionnaires or InterviewUiState.PostQuestionnaires)
+0162             {
+0163                 <StudyQuestionnaires SessionId="sessionId" Phase="@(interviewState == InterviewUiState.PreQuestionnaires ? "pre" : "post")" OnCompleted="GetNextQuestionFromApi" />
+0164             }
+0165             @if (interviewState == InterviewUiState.Answering)
+0166             {
+0167                 <MudStack Spacing="2" Class="w-100">
+0168                     <div id="original-answer-composer" class="answer-composer"
+0169                          onkeydown="if (event.target.tagName === 'TEXTAREA' && event.key === 'Enter' && !event.shiftKey) event.preventDefault();">
+0170                         <MudTextField @bind-Value="userInput"
+0171                                       InputId="original-answer-input"
+0172                                       Immediate="true"
+0173                                       Label="Γράψτε την απάντησή σας..."
+0174                                       Variant="Variant.Outlined"
+0175                                       FullWidth="true"
+0176                                       Lines="3"
+0177                                       Sizing="InputSizing.Fixed"
+0178                                       Class="answer-composer__input"
+0179                                       Disabled="@(isBotTyping || isAnswerSubmitting || pendingAnswerSubmission != null)"
+0180                                       OnKeyDown="HandleKeyDown" />
+0181 
+0182                         <MudButton Variant="Variant.Filled"
+0183                                    Color="Color.Primary"
+0184                                    Class="answer-composer__send"
+0185                                    OnClick="SendMessage"
+0186                                    Disabled="@(string.IsNullOrWhiteSpace(userInput) || isBotTyping || isAnswerSubmitting || pendingAnswerSubmission != null)">
+0187                             @if (isAnswerSubmitting)
+0188                             {
+0189                                 <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true" />
+0190                                 <MudText Class="ms-2">Αποθήκευση...</MudText>
+0191                             }
+0192                             else
+0193                             {
+0194                                 <MudText>Αποστολή</MudText>
+0195                             }
+0196                         </MudButton>
+0197                     </div>
+0198 
+0199                     @if (!string.IsNullOrWhiteSpace(answerSubmissionError))
+0200                     {
+0201                         <MudAlert Severity="Severity.Error" Variant="Variant.Outlined">
+0202                             @answerSubmissionError
+0203                             <MudButton Variant="Variant.Text"
+0204                                        Color="Color.Error"
+0205                                        OnClick="RetryPendingAnswer"
+0206                                        Disabled="@isAnswerSubmitting">
+0207                                 Δοκιμάστε ξανά
+0208                             </MudButton>
+0209                         </MudAlert>
+0210                     }
+0211                 </MudStack>
+0212             }
+0213             @if (interviewState is (InterviewUiState.AwaitingFeedback or InterviewUiState.AwaitingRevisedFeedback) && !string.IsNullOrWhiteSpace(feedbackRetrievalError))
+0214             {
+0215                 <MudAlert Severity="Severity.Error" Variant="Variant.Outlined">
+0216                     @feedbackRetrievalError
+0217                     <MudButton Variant="Variant.Text"
+0218                                Color="Color.Error"
+0219                                OnClick="RetryFeedback"
+0220                                Disabled="@isBotTyping">
+0221                         Επανάληψη ανάκτησης ανατροφοδότησης
+0222                     </MudButton>
+0223                 </MudAlert>
+0224             }
+0225             @if (interviewState == InterviewUiState.WaitingForDecision)
+0226             {
+0227                 <MudStack Spacing="2" Class="mt-4">
+0228 
+0229                     <MudText Typo="Typo.body2"
+0230                              Align="Align.Center"
+0231                              Style="color:#64748b;">
+0232                         Αφού διαβάσετε την ανατροφοδότηση, επιλέξτε αν θέλετε
+0233                         να βελτιώσετε την απάντησή σας ή να συνεχίσετε στην επόμενη ερώτηση.
+0234                     </MudText>
+0235 
+0236                     <MudStack Row="true"
+0237                               Spacing="2"
+0238                               Justify="Justify.Center">
+0239 
+0240                         <MudButton Variant="Variant.Outlined"
+0241                                    Color="Color.Primary"
+0242                                    StartIcon="@Icons.Material.Filled.Edit"
+0243                                    OnClick="ChooseRevision"
+0244                                    Disabled="@(isActionLoading || pendingDecision != null || awaitingDisplayAck)">
+0245                             Βελτίωση απάντησης
+0246                         </MudButton>
+0247 
+0248                         <MudButton Variant="Variant.Filled"
+0249                                    Color="Color.Primary"
+0250                                    EndIcon="@Icons.Material.Filled.ArrowForward"
+0251                                    OnClick="ContinueWithoutRevision"
+0252                                    Disabled="@(isActionLoading || pendingDecision != null || awaitingDisplayAck)">
+0253                             @(currentStage == 7 ? "ΟΛΟΚΛΗΡΩΣΗ ΣΥΝΕΝΤΕΥΞΗΣ" : "ΣΥΝΕΧΕΙΑ ΣΤΗΝ ΕΠΟΜΕΝΗ ΕΡΩΤΗΣΗ")
+0254                         </MudButton>
+0255 
+0256                     </MudStack>
+0257 
+0258                 </MudStack>
+0259             }
+0260             
+0261             @if (interviewState == InterviewUiState.WaitingForContinue)
+0262             {
+0263                 <MudButton Variant="Variant.Filled" Color="Color.Primary"
+0264                            OnClick="ContinueAfterRevisedFeedback" Disabled="@(isActionLoading || awaitingDisplayAck)">
+0265                     Συνέχεια
+0266                 </MudButton>
+0267             }
+0268             @if (awaitingDisplayAck && !string.IsNullOrWhiteSpace(actionError))
+0269             {
+0270                 <MudAlert Severity="Severity.Error">
+0271                     @actionError
+0272                     <MudButton OnClick="AcknowledgeDisplayedFeedback" Disabled="@isActionLoading">Επανάληψη επιβεβαίωσης εμφάνισης</MudButton>
+0273                 </MudAlert>
+0274             }
+0275             @if (flowVersion >= 2 && !string.IsNullOrWhiteSpace(feedbackRetrievalError) &&
+0276                  interviewState is not (InterviewUiState.AwaitingFeedback or InterviewUiState.AwaitingRevisedFeedback))
+0277             {
+0278                 <MudAlert Severity="Severity.Error">
+0279                     @feedbackRetrievalError
+0280                     <MudButton OnClick="GetNextQuestionFromApi" Disabled="@isBotTyping">Επανάληψη ανάκτησης</MudButton>
+0281                 </MudAlert>
+0282             }
+0283             @if (interviewState == InterviewUiState.Revising)
+0284             {
+0285                 <MudStack id="revision-answer-composer" Spacing="2" Class="w-100"
+0286                           onkeydown="if (event.target.tagName === 'TEXTAREA' && event.key === 'Enter' && !event.shiftKey) event.preventDefault();">
+0287 
+0288                     <MudText Typo="Typo.subtitle2" Style="color:#475569;">
+0289                         Βελτιώστε την απάντησή σας με βάση το feedback που λάβατε.
+0290                     </MudText>
+0291 
+0292                     <MudTextField @bind-Value="userInput"
+0293                                   InputId="revision-answer-input"
+0294                                   Immediate="true"
+0295                                   Label="Βελτιωμένη απάντηση"
+0296                                   Variant="Variant.Outlined"
+0297                                   FullWidth="true"
+0298                                   Lines="4"
+0299                                   Disabled="@(isActionLoading || pendingRevisionText != null)"
+0300                                   OnKeyDown="HandleRevisionKeyDown" />
+0301 
+0302                     <MudButton Variant="Variant.Filled"
+0303                                Color="Color.Primary"
+0304                                OnClick="SubmitRevision"
+0305                                Disabled="@(string.IsNullOrWhiteSpace(userInput) || isActionLoading || pendingRevisionText != null)">
+0306                         Υποβολή βελτιωμένης απάντησης
+0307                     </MudButton>
+0308 
+0309                 </MudStack>
+0310             }
+0311 
+0312             @if (!awaitingDisplayAck && !string.IsNullOrWhiteSpace(actionError))
+0313             {
+0314                 <MudAlert Severity="Severity.Error" Variant="Variant.Outlined">
+0315                     @actionError
+0316                     <MudButton Variant="Variant.Text" Color="Color.Error"
+0317                                OnClick="RetryAnswerAction" Disabled="@isActionLoading">
+0318                         Επανάληψη της ίδιας ενέργειας
+0319                     </MudButton>
+0320                 </MudAlert>
+0321             }
+0322 
+0323             @if (interviewState == InterviewUiState.Finished)
+0324             {
+0325                 <MudAlert Severity="Severity.Success"
+0326                           Variant="Variant.Filled"
+0327                           Class="w-100"
+0328                           Style="border-radius: 8px;">
+0329                     🎉 Η προσομοίωση συνέντευξης ολοκληρώθηκε!
+0330                     Σας ευχαριστούμε θερμά για τη συμμετοχή σας.
+0331                 </MudAlert>
+0332             }
+0333         </div>
+0334     }
+0335 
+0336     @if (secureAccessAvailable)
+0337     {
+0338         <MudButton OnClick="EndParticipantAccess" Variant="Variant.Text">Τερματισμός πρόσβασης</MudButton>
+0339     }
+0340 </MudContainer>

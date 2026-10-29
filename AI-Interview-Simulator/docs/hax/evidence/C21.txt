@@ -1,0 +1,72 @@
+AIInterviewSimulator.Tests/BrowserTestHost.cs
+0020 internal static class BrowserTestHost
+0021 {
+0022     internal static async Task Run()
+0023     {
+0024         var folder = Path.Combine(Path.GetTempPath(), "interview-browser-" + Guid.NewGuid());
+0025         Directory.CreateDirectory(folder);
+0026         var builder = WebApplication.CreateBuilder(new WebApplicationOptions { EnvironmentName = "BrowserTests", ContentRootPath = folder });
+0027         builder.Configuration.Sources.Clear();
+0028         builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?> { ["GeminiApiKey"] = "stub-only-not-a-real-key", ["Export:Key"] = new string('t', 32),
+0029             ["Study:CollectionEnabled"] = "true", ["Study:Consent:Approved"] = "true",
+0030             ["Study:Consent:Version"] = "synthetic-browser-v1", ["Study:Consent:Text"] = "SYNTHETIC TEST ONLY - not approved for participants." });
+0031         builder.WebHost.UseUrls("http://127.0.0.1:18555");
+0032         builder.Logging.ClearProviders();
+0033         builder.Services.AddDbContext<ApplicationDbContext>(o => o.UseSqlite($"Data Source={Path.Combine(folder, "browser.db")};Default Timeout=10"));
+0034         builder.Services.AddParticipantSecurity();
+0035         builder.Services.AddControllers(o => o.Filters.Add<ParticipantAccessFilter>()).AddApplicationPart(typeof(InterviewController).Assembly);
+0036         builder.Services.AddCors(o => o.AddDefaultPolicy(p => p.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader()));
+0037         builder.Services.AddScoped<ScriptBasedEngine>(); builder.Services.AddScoped<InterviewManager>();
+0038         builder.Services.AddScoped<ScriptFeedbackEngine>(); builder.Services.AddScoped<LlmFeedbackEngine>(); builder.Services.AddScoped<FeedbackManager>();
+0039         var stub = new ProviderStub();
+0040         builder.Services.AddScoped(sp => new GeminiService(new HttpClient(stub, false), sp.GetRequiredService<IConfiguration>()));
+0041         var app = builder.Build(); app.UseCors(); app.UseAuthentication(); app.UseAuthorization(); app.MapControllers();
+0042         app.MapPost("/test/prepare/{condition}", async (string condition, ApplicationDbContext db) =>
+0043         {
+0044             if (condition is not ("A" or "B")) return Results.BadRequest();
+0045             var counts = await db.InterviewSessions.GroupBy(s => s.Condition).Select(g => new { Key = g.Key, Count = g.Count() }).ToDictionaryAsync(g => g.Key, g => g.Count);
+0046             counts.TryGetValue(condition, out var desired); counts.TryGetValue(condition == "A" ? "B" : "A", out var opposite);
+0047             for (var n = opposite; n <= desired; n++) db.Add(new InterviewSession { FlowVersion = 2, Condition = condition == "A" ? "B" : "A", User = new User { Nickname = "Test allocation seed" } });
+0048             await db.SaveChangesAsync(); return Results.Ok();
+0049         });
+0050         app.MapPost("/test/provider/{mode}", (string mode) => { stub.FailRevised = mode == "fail-revised"; return Results.Ok(); });
+0051         app.MapGet("/test/status", async (ApplicationDbContext db) =>
+0052         {
+0053             var sessions = await db.InterviewSessions.AsNoTracking().Include(s => s.User).Include(s => s.Answers).Where(s => s.User!.Nickname.StartsWith("Browser E2E")).ToListAsync();
+0054             return Results.Ok(new { providerRequests = stub.Requests, providerFailures = stub.Failures, sessions = sessions.Select(s => new { s.Id, s.Condition, s.FlowVersion, s.FinishedAt,
+0055                 answers = s.Answers.OrderBy(a => a.StageNumber).Select(a => new { a.Id, a.StageNumber, a.AnswerText, a.RevisedAnswerText, a.FeedbackText, a.RevisedFeedbackText, a.StageCompletedAt,
+0056                     a.OriginalWritingMilliseconds, a.RevisionWritingMilliseconds, a.FeedbackWaitMilliseconds, a.RevisedFeedbackWaitMilliseconds, a.StageElapsedMilliseconds }) }) });
+0057         });
+0058         await using (var scope = app.Services.CreateAsyncScope()) await scope.ServiceProvider.GetRequiredService<ApplicationDbContext>().Database.MigrateAsync();
+0059         Console.WriteLine("Isolated browser host: http://127.0.0.1:18555; SQLite: " + folder);
+0060         await app.RunAsync();
+0061     }
+0062     internal static async Task ExportReadOnly(string databasePath, string outputPath)
+0063     {
+0064         var options = new DbContextOptionsBuilder<ApplicationDbContext>().UseSqlite(
+0065             new Microsoft.Data.Sqlite.SqliteConnectionStringBuilder { DataSource = Path.GetFullPath(databasePath), Mode = Microsoft.Data.Sqlite.SqliteOpenMode.ReadOnly }.ToString()).Options;
+0066         await using var db = new ApplicationDbContext(options);
+0067         var config = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?> { ["Export:Key"] = new string('v', 32) }).Build();
+0068         var controller = new InterviewController(db, null!, null!, config);
+0069         controller.ControllerContext = new Microsoft.AspNetCore.Mvc.ControllerContext { HttpContext = new DefaultHttpContext() };
+0070         controller.Request.Headers["X-Export-Key"] = new string('v', 32);
+0071         var result = (Microsoft.AspNetCore.Mvc.FileContentResult)await controller.ExportDataAsCsv();
+0072         await File.WriteAllBytesAsync(outputPath, result.FileContents);
+0073         Console.WriteLine("CSV generated by real export controller using read-only SQLite; no provider calls.");
+0074     }
+0075 
+0076     private sealed class ProviderStub : HttpMessageHandler
+0077     {
+0078         public volatile bool FailRevised; public int Requests; public int Failures;
+0079         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+0080         {
+0081             Interlocked.Increment(ref Requests);
+0082             var body = await request.Content!.ReadAsStringAsync(cancellationToken);
+0083             var prompt = JsonDocument.Parse(body).RootElement.GetProperty("contents")[0].GetProperty("parts")[0].GetProperty("text").GetString()!;
+0084             var revised = prompt.Contains("BROWSER_REVISED");
+0085             if (FailRevised && revised) { Interlocked.Increment(ref Failures); return new(HttpStatusCode.BadRequest); }
+0086             var text = revised ? "Η νέα απάντηση περιγράφει την προσέγγισή σας. Μπορείτε να διευκρινίσετε το αποτέλεσμα." : "Η απάντηση δίνει ένα αρχικό πλαίσιο. Μπορείτε να προσθέσετε συγκεκριμένες ενέργειες.";
+0087             return new(HttpStatusCode.OK) { Content = new StringContent(JsonSerializer.Serialize(new { candidates = new[] { new { finishReason = "STOP", content = new { parts = new[] { new { text } } } } } })) };
+0088         }
+0089     }
+0090 }

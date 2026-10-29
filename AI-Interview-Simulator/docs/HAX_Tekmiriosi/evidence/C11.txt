@@ -1,0 +1,25 @@
+AIInterviewSimulator.Engine/Managers/FeedbackManager.cs
+0019     public async Task<FeedbackResult> GenerateFeedbackAsync(
+0020         string condition,
+0021         int stageNumber,
+0022         UserAnswer answer,
+0023         CancellationToken cancellationToken = default)
+0024     {
+0025         string normalizedCondition = condition
+0026             .Trim()
+0027             .ToUpperInvariant();
+0028 
+0029         return normalizedCondition switch
+0030         {
+0031             "A" => FeedbackResult.FromText(await _scriptFeedbackEngine.GenerateFeedbackAsync(
+0032                 stageNumber,
+0033                 answer)),
+0034 
+0035             "B" => await _llmFeedbackEngine.GenerateFeedbackAsync(
+0036                 stageNumber,
+0037                 answer, cancellationToken),
+0038 
+0039             _ => throw new ArgumentException(
+0040                 "Condition must be A or B.",
+0041                 nameof(condition))
+0042         };

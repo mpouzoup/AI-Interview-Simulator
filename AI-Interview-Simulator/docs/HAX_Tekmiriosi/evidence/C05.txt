@@ -1,0 +1,90 @@
+AIInterviewSimulator.Client/Pages/Home.razor
+1047     private async Task GetFlowV2()
+1048     {
+1049         if (isBotTyping) return;
+1050         isBotTyping = true;
+1051         feedbackRetrievalError = null;
+1052         StateHasChanged();
+1053         try
+1054         {
+1055             QuestionResponseDto? res;
+1056             if (interviewState is InterviewUiState.AwaitingFeedback or InterviewUiState.AwaitingRevisedFeedback)
+1057             {
+1058                 var round = interviewState == InterviewUiState.AwaitingRevisedFeedback ? 2 : 1;
+1059                 var response = await Http.PostAsync($"{ApiBaseUrl}/answers/{currentAnswerId}/feedback/{round}", null);
+1060                 response.EnsureSuccessStatusCode();
+1061                 res = await response.Content.ReadFromJsonAsync<QuestionResponseDto>();
+1062                 if (res?.AnswerId != currentAnswerId || res.Round != round || res.FeedbackStatus != "Success" ||
+1063                     !AIInterviewSimulator.Engine.Feedback.FeedbackResult.IsUsable(res.Feedback))
+1064                     throw new InvalidOperationException("Feedback is unavailable or still in progress.");
+1065             }
+1066             else
+1067             {
+1068                 res = await Http.GetFromJsonAsync<QuestionResponseDto>($"{ApiBaseUrl}/sessions/{sessionId}/next-question");
+1069             }
+1070             if (res == null || res.FlowVersion != 2) throw new InvalidOperationException("Invalid flow response.");
+1071             if (res.IsFinished)
+1072             {
+1073                 interviewState = InterviewUiState.Finished;
+1074                 return;
+1075             }
+1076             if (res.FlowState is "PreQuestionnaires" or "PostQuestionnaires")
+1077             {
+1078                 currentStage = res.StageNumber;
+1079                 interviewState = res.FlowState == "PreQuestionnaires" ? InterviewUiState.PreQuestionnaires : InterviewUiState.PostQuestionnaires;
+1080                 return;
+1081             }
+1082             if (res.FlowState == "Answering")
+1083             {
+1084                 ShowQuestion(res);
+1085                 return;
+1086             }
+1087             currentAnswerId = res.AnswerId ?? throw new InvalidOperationException("Missing answer ID.");
+1088             currentStage = res.StageNumber;
+1089             currentQuestionText = res.QuestionText;
+1090             originalAnswerText = res.AnswerText ?? originalAnswerText;
+1091             if (chatMessages.Count == 0)
+1092             {
+1093                 chatMessages.Add(new ChatMessage { Text = res.QuestionText, IsUser = false });
+1094                 chatMessages.Add(new ChatMessage { Text = originalAnswerText, IsUser = true });
+1095                 if (!string.IsNullOrWhiteSpace(res.RevisedAnswerText))
+1096                     chatMessages.Add(new ChatMessage { Text = res.RevisedAnswerText, IsUser = true });
+1097             }
+1098             pendingQuestion = res; // compatibility with the existing editor/decision handlers
+1099             if (res.FlowState == "Revising")
+1100             {
+1101                 interviewState = InterviewUiState.Revising;
+1102                 userInput = originalAnswerText;
+1103                 if (!string.IsNullOrWhiteSpace(res.Feedback) && displayedFeedback.Add($"{currentAnswerId}:1"))
+1104                     chatMessages.Add(new ChatMessage { Text = res.Feedback, IsUser = false });
+1105                 return;
+1106             }
+1107             if (res.FlowState is "AwaitingFeedback" or "AwaitingRevisedFeedback")
+1108             {
+1109                 interviewState = res.Round == 2 ? InterviewUiState.AwaitingRevisedFeedback : InterviewUiState.AwaitingFeedback;
+1110                 feedbackRetrievalError = "Η απάντηση έχει αποθηκευτεί. Επιλέξτε ανάκτηση της ανατροφοδότησης.";
+1111                 return;
+1112             }
+1113             if (!AIInterviewSimulator.Engine.Feedback.FeedbackResult.IsUsable(res.Feedback))
+1114                 throw new InvalidOperationException("Missing feedback.");
+1115             if (displayedFeedback.Add($"{currentAnswerId}:{res.Round}"))
+1116                 chatMessages.Add(new ChatMessage
+1117                 {
+1118                     Text = (res.Round == 2 ? "Ανατροφοδότηση αναθεωρημένης απάντησης:\n" : "") + res.Feedback,
+1119                     IsUser = false
+1120                 });
+1121             interviewState = res.Round == 2 ? InterviewUiState.WaitingForContinue : InterviewUiState.WaitingForDecision;
+1122             pendingDisplayRound = res.Round;
+1123             pendingDisplayTiming = null;
+1124             awaitingDisplayAck = true;
+1125             lastTimedPhase = null;
+1126         }
+1127         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or InvalidOperationException or System.Text.Json.JsonException)
+1128         {
+1129             feedbackRetrievalError = "Τα αποθηκευμένα δεδομένα διατηρούνται. Η ανάκτηση δεν ολοκληρώθηκε ή η παραγωγή βρίσκεται σε εξέλιξη. Δοκιμάστε ξανά την ανάκτηση.";
+1130         }
+1131         finally { isBotTyping = false; StateHasChanged(); }
+1132     }
+1133 
+1134     private async Task ContinueAfterRevisedFeedback()
+1135     {

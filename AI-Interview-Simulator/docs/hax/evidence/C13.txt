@@ -1,0 +1,92 @@
+AIInterviewSimulator.Api/Controllers/InterviewController.RevisionFlow.cs
+0064     [HttpPost("answers/{answerId:int}/feedback/{round:int}")]
+0065     public async Task<IActionResult> GenerateAnswerFeedback(int answerId, int round, CancellationToken cancellationToken = default)
+0066     {
+0067         if (round is not (1 or 2)) return BadRequest("Feedback round must be 1 or 2.");
+0068         UserAnswer? source = null;
+0069         string? condition = null;
+0070         var lease = Guid.NewGuid();
+0071         var claimed = false;
+0072         var claimResult = await ExecuteAnswerAction(async () =>
+0073         {
+0074             var answer = await _context.UserAnswers.Include(a => a.InterviewSession).FirstOrDefaultAsync(a => a.Id == answerId);
+0075             if (answer == null) return NotFound();
+0076             if (answer.InterviewSession?.FlowVersion != 2) return Conflict("This endpoint requires flow v2.");
+0077             var cached = round == 1 ? answer.FeedbackText : answer.RevisedFeedbackText;
+0078             if (FeedbackResult.IsUsable(cached))
+0079                 return FlowReply(answer, round, round == 1 ? "WaitingForDecision" : "WaitingForContinue");
+0080             if (!await IsActiveAnswer(answer) ||
+0081                 (round == 1 && answer.ChoseToRevise != null) ||
+0082                 (round == 2 && (answer.ChoseToRevise != true || answer.RevisedAnswerText == null)))
+0083                 return Conflict("Feedback is not allowed in this state.");
+0084             if (answer.FeedbackLeaseId != null && answer.FeedbackLeaseUntil > DateTime.UtcNow)
+0085                 return FlowReply(answer, round, round == 1 ? "AwaitingFeedback" : "AwaitingRevisedFeedback", "InProgress");
+0086             answer.FeedbackLeaseId = lease;
+0087             answer.FeedbackLeaseRound = round;
+0088             answer.FeedbackLeaseUntil = DateTime.UtcNow.AddSeconds(60);
+0089             if (round == 1) answer.FeedbackGenerationAttempts = (answer.FeedbackGenerationAttempts ?? 0) + 1;
+0090             else answer.RevisedFeedbackGenerationAttempts = (answer.RevisedFeedbackGenerationAttempts ?? 0) + 1;
+0091             await _context.SaveChangesAsync();
+0092             condition = answer.InterviewSession.Condition;
+0093             // The existing engines see ONLY this round's answer, never a comparison prompt.
+0094             source = new UserAnswer
+0095             {
+0096                 StageNumber = answer.StageNumber, StageName = answer.StageName,
+0097                 QuestionText = answer.QuestionText,
+0098                 AnswerText = round == 1 ? answer.AnswerText : answer.RevisedAnswerText!
+0099             };
+0100             claimed = true;
+0101             return Ok();
+0102         });
+0103         if (!claimed) return claimResult;
+0104 
+0105         var watch = Stopwatch.StartNew();
+0106         FeedbackResult result;
+0107         try
+0108         {
+0109             result = await _feedbackManager.GenerateFeedbackAsync(condition!, source!.StageNumber, source, cancellationToken);
+0110             if (result.Status == FeedbackStatus.Success && !FeedbackResult.IsUsable(result.Text))
+0111                 result = new(FeedbackStatus.InvalidResult, ErrorCode: "empty_or_unavailable_text");
+0112         }
+0113         catch (Exception ex)
+0114         {
+0115             _logger.LogWarning("Feedback exception {ExceptionType} AnswerId {AnswerId} Round {Round}", ex.GetType().Name, answerId, round);
+0116             result = new(FeedbackStatus.Unavailable, ErrorCode: "generation_exception");
+0117         }
+0118         watch.Stop();
+0119         // Complete even if the HTTP caller disconnected: preserve a valid result and release the lease.
+0120         _context.ChangeTracker.Clear();
+0121         return await ExecuteAnswerAction(async () =>
+0122         {
+0123             var answer = await _context.UserAnswers.FirstAsync(a => a.Id == answerId);
+0124             if (answer.FeedbackLeaseId != lease || answer.FeedbackLeaseRound != round)
+0125                 return Conflict("This generation lease was superseded; retrieve current feedback.");
+0126             answer.FeedbackLeaseId = null;
+0127             answer.FeedbackLeaseRound = null;
+0128             answer.FeedbackLeaseUntil = null;
+0129             if (round == 1)
+0130             {
+0131                 answer.FeedbackGenerationMilliseconds = (answer.FeedbackGenerationMilliseconds ?? 0) + watch.Elapsed.TotalMilliseconds;
+0132                 if (result.Status == FeedbackStatus.Success)
+0133                 {
+0134                     answer.FeedbackText = result.Text;
+0135                     answer.FeedbackReadyAt = DateTime.UtcNow;
+0136                 }
+0137             }
+0138             else
+0139             {
+0140                 answer.RevisedFeedbackGenerationMilliseconds = (answer.RevisedFeedbackGenerationMilliseconds ?? 0) + watch.Elapsed.TotalMilliseconds;
+0141                 if (result.Status == FeedbackStatus.Success)
+0142                 {
+0143                     answer.RevisedFeedbackText = result.Text;
+0144                     answer.RevisedFeedbackReadyAt = DateTime.UtcNow;
+0145                 }
+0146             }
+0147             await _context.SaveChangesAsync();
+0148             _logger.LogInformation("FeedbackGeneration AnswerId {AnswerId} Round {Round} Condition {Condition} Status {Status} ErrorCode {ErrorCode} Model {Model} Attempts {Attempts} DurationMs {DurationMs}",
+0149                 answerId, round, condition, result.Status, result.ErrorCode, result.Model, result.Attempts, watch.ElapsedMilliseconds);
+0150             var state = result.Status == FeedbackStatus.Success
+0151                 ? round == 1 ? "WaitingForDecision" : "WaitingForContinue"
+0152                 : round == 1 ? "AwaitingFeedback" : "AwaitingRevisedFeedback";
+0153             return FlowReply(answer, round, state, result.Status.ToString(), result.ErrorCode);
+0154         });

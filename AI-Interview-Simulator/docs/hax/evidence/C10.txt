@@ -1,0 +1,63 @@
+AIInterviewSimulator.Engine/Feedback/LlmFeedbackEngine.cs
+0016     public async Task<FeedbackResult> GenerateFeedbackAsync(
+0017         int stageNumber,
+0018         UserAnswer answer,
+0019         CancellationToken cancellationToken = default)
+0020     {
+0021         var promptBuilder = new StringBuilder();
+0022         
+0023         promptBuilder.AppendLine(
+0024             "Είσαι ένας έμπειρος σύμβουλος προετοιμασίας για συνεντεύξεις εργασίας.");
+0025 
+0026         promptBuilder.AppendLine(
+0027             "Αξιολόγησε την απάντηση του υποψηφίου και δώσε σύντομη, συγκεκριμένη και υποστηρικτική ανατροφοδότηση στα ελληνικά.");
+0028 
+0029         promptBuilder.AppendLine($"Στάδιο συνέντευξης: {stageNumber}");
+0030         promptBuilder.AppendLine($"Όνομα σταδίου: {answer.StageName}");
+0031         promptBuilder.AppendLine($"Ερώτηση: {answer.QuestionText}");
+0032         promptBuilder.AppendLine($"Απάντηση υποψηφίου: {answer.AnswerText}");
+0033 
+0034         promptBuilder.AppendLine();
+0035         promptBuilder.AppendLine("Οδηγίες:");
+0036 
+0037         promptBuilder.AppendLine(
+0038             "- Γράψε το πολύ 3 σύντομες προτάσεις.");
+0039 
+0040         promptBuilder.AppendLine(
+0041             "- Αν υπάρχει ουσιαστικό θετικό στοιχείο στην απάντηση, ανέφερέ το σύντομα.");
+0042 
+0043         promptBuilder.AppendLine(
+0044             "- Πρότεινε μία συγκεκριμένη βελτίωση.");
+0045 
+0046         promptBuilder.AppendLine(
+0047             "- Σύνδεσε την ανατροφοδότηση με συγκεκριμένο στοιχείο που υπάρχει στην απάντηση του υποψηφίου, χωρίς να επαναλαμβάνεις ολόκληρη την απάντηση.");
+0048 
+0049         promptBuilder.AppendLine(
+0050             "- Χρησιμοποίησε ευγενικό, επαγγελματικό και ουδέτερο ύφος.");
+0051 
+0052         promptBuilder.AppendLine(
+0053             "- Απόφυγε απόλυτες κρίσεις για την ικανότητα ή την καταλληλότητα του υποψηφίου.");
+0054 
+0055         promptBuilder.AppendLine(
+0056             "- Βάσισε την ανατροφοδότηση αποκλειστικά στο περιεχόμενο της απάντησης και στη σχετική ερώτηση.");
+0057 
+0058         promptBuilder.AppendLine(
+0059             "- Μην κάνεις υποθέσεις ή κρίσεις για τον υποψήφιο με βάση φύλο, ηλικία, καταγωγή, όνομα ή άλλα προσωπικά χαρακτηριστικά.");
+0060 
+0061         promptBuilder.AppendLine(
+0062             "- Αν η απάντηση είναι πολύ ασαφής, άσχετη ή δεν περιέχει αρκετές πληροφορίες για ουσιαστική αξιολόγηση, δήλωσέ το ευγενικά και πρότεινε τι είδους πληροφορία θα μπορούσε να προσθέσει ο υποψήφιος.");
+0063 
+0064         promptBuilder.AppendLine(
+0065             "- Μην επινοείς θετικά στοιχεία ή πληροφορίες που δεν υπάρχουν στην απάντηση.");
+0066 
+0067         promptBuilder.AppendLine(
+0068             "- Μην δώσεις αριθμητική βαθμολογία.");
+0069 
+0070         promptBuilder.AppendLine(
+0071             "- Μην δημιουργήσεις νέα ερώτηση.");
+0072 
+0073         promptBuilder.AppendLine(
+0074             "- Μην επαναλάβεις ολόκληρη την απάντηση του υποψηφίου.");
+0075 
+0076         return await _geminiService.GenerateResponseAsync(
+0077             promptBuilder.ToString(), cancellationToken);

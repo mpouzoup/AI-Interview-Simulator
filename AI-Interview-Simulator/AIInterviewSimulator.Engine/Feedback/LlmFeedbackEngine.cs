@@ -4,7 +4,7 @@ using AIInterviewSimulator.Engine.Services;
 
 namespace AIInterviewSimulator.Engine.Feedback;
 
-public class LlmFeedbackEngine : IFeedbackEngine
+public class LlmFeedbackEngine
 {
     private readonly GeminiService _geminiService;
 
@@ -13,9 +13,10 @@ public class LlmFeedbackEngine : IFeedbackEngine
         _geminiService = geminiService;
     }
 
-    public async Task<string> GenerateFeedbackAsync(
+    public async Task<FeedbackResult> GenerateFeedbackAsync(
         int stageNumber,
-        UserAnswer answer)
+        UserAnswer answer,
+        CancellationToken cancellationToken = default)
     {
         var promptBuilder = new StringBuilder();
         
@@ -73,6 +74,6 @@ public class LlmFeedbackEngine : IFeedbackEngine
             "- Μην επαναλάβεις ολόκληρη την απάντηση του υποψηφίου.");
 
         return await _geminiService.GenerateResponseAsync(
-            promptBuilder.ToString());
+            promptBuilder.ToString(), cancellationToken);
     }
 }

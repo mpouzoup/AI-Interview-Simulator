@@ -1,0 +1,30 @@
+{
+  "capturedAt": "2026-10-29T16:36:54.893Z",
+  "provider": "local stub only",
+  "providerRequests": 6,
+  "providerFailures": 4,
+  "sessions": [
+    {
+      "condition": "B",
+      "stages": 1,
+      "finished": false
+    },
+    {
+      "condition": "A",
+      "stages": 7,
+      "finished": true
+    },
+    {
+      "condition": "A",
+      "stages": 3,
+      "finished": false
+    }
+  ],
+  "checks": {
+    "AsevenStageCompletion": true,
+    "AcurrentStageRefresh": true,
+    "AuncertainFallback": true,
+    "BfailureRetry": true,
+    "noThirdAnswer": true
+  }
+}

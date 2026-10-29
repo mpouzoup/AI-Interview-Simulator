@@ -2,6 +2,9 @@ namespace AIInterviewSimulator.Api.DTOs.Requests;
 
 public class SubmitAnswerRequest
 {
+    public FlowTimingRequest? Timing { get; set; }
+    public DateTime? QuestionBrowserDisplayedAt { get; set; }
+
     public Guid SubmissionId { get; set; }
 
     public Guid SessionId { get; set; }

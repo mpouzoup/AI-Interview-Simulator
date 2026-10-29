@@ -1,0 +1,39 @@
+AIInterviewSimulator.Api/Controllers/InterviewController.RevisionFlow.cs
+0023     private async Task<IActionResult> CurrentFlowState(InterviewSession session)
+0024     {
+0025         if (await HasPendingQuestionnaires(session.Id, "pre"))
+0026             return Ok(new { flowVersion = 2, flowState = "PreQuestionnaires", stageNumber = 1, isFinished = false });
+0027         var answers = session.Answers.OrderBy(a => a.StageNumber).ToList();
+0028         var last = answers.LastOrDefault();
+0029         if (last != null && last.StageCompletedAt == null)
+0030         {
+0031             if (last.ChoseToRevise == true && last.RevisedAnswerText == null)
+0032                 return FlowReply(last, 1, "Revising");
+0033             var round = last.RevisedAnswerText != null ? 2 : 1;
+0034             var text = round == 1 ? last.FeedbackText : last.RevisedFeedbackText;
+0035             return FlowReply(last, round, FeedbackResult.IsUsable(text)
+0036                 ? round == 1 ? "WaitingForDecision" : "WaitingForContinue"
+0037                 : round == 1 ? "AwaitingFeedback" : "AwaitingRevisedFeedback", "NotRequired");
+0038         }
+0039         if (session.FinishedAt != null && await HasPendingQuestionnaires(session.Id, "post"))
+0040             return Ok(new { flowVersion = 2, flowState = "PostQuestionnaires", stageNumber = 7, isFinished = false });
+0041         if (session.FinishedAt != null)
+0042             return Ok(new { flowVersion = 2, flowState = "Finished", isFinished = true });
+0043         var stage = answers.Count + 1;
+0044         if (stage > 7) return Conflict("Invalid incomplete session state.");
+0045         return Ok(new
+0046         {
+0047             flowVersion = 2, flowState = "Answering", stageNumber = stage,
+0048             questionText = await _interviewManager.GetNextQuestionAsync(session.Condition, stage, answers),
+0049             feedbackStatus = "NotRequired", isFinished = false
+0050         });
+0051     }
+0052 
+0053     private OkObjectResult FlowReply(UserAnswer answer, int round, string state, string status = "Success", string? error = null) => Ok(new
+0054     {
+0055         flowVersion = 2, flowState = state, answerId = answer.Id, stageNumber = answer.StageNumber,
+0056         questionText = answer.QuestionText, answerText = answer.AnswerText,
+0057         revisedAnswerText = answer.RevisedAnswerText, round,
+0058         feedback = round == 1 ? answer.FeedbackText : answer.RevisedFeedbackText,
+0059         feedbackStatus = status, feedbackErrorCode = error, isFinished = false
+0060     });

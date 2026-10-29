@@ -1,0 +1,52 @@
+AIInterviewSimulator.Client/Pages/Home.razor
+1169     private async Task RestoreBrowserSession()
+1170     {
+1171         if (isSessionStarted) return;
+1172         restoringSession = true;
+1173         try
+1174         {
+1175             await using var module = await JSRuntime.InvokeAsync<IJSObjectReference>("import", "./js/interview-chat.js?v=5");
+1176             studyInfo = module == null ? new() : await module.InvokeAsync<StudyView?>("loadStudy") ?? new();
+1177             using var response = await Http.GetAsync($"{ApiBaseUrl}/participant");
+1178             if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+1179             {
+1180                 secureAccessAvailable = studyInfo.SignedIn;
+1181                 if (secureAccessAvailable) enrollmentError = "Η πρόσβαση έληξε ή ανακλήθηκε. Επιλέξτε λήξη πρόσβασης για να καθαριστεί η παλιά συνεδρία από τον browser.";
+1182                 return;
+1183             }
+1184             response.EnsureSuccessStatusCode();
+1185             var saved = await response.Content.ReadFromJsonAsync<ParticipantProfile>();
+1186             if (saved == null) return;
+1187             secureAccessAvailable = true;
+1188             userId = saved.UserId; nickname = saved.Nickname;
+1189             if (saved.SessionId == null)
+1190             {
+1191                 using var started = await Http.PostAsJsonAsync($"{ApiBaseUrl}/sessions", new { userId });
+1192                 started.EnsureSuccessStatusCode();
+1193                 var session = await started.Content.ReadFromJsonAsync<SessionDto>();
+1194                 if (session == null) return;
+1195                 sessionId = session.Id; flowVersion = session.FlowVersion; selectedCondition = session.Condition;
+1196             }
+1197             else
+1198             {
+1199                 sessionId = saved.SessionId.Value; flowVersion = saved.FlowVersion ?? 2;
+1200                 selectedCondition = saved.Condition ?? "";
+1201             }
+1202             isSessionStarted = true;
+1203             browserTimingsUnavailable = true;
+1204             interviewState = InterviewUiState.LoadingNextQuestion;
+1205             await GetNextQuestionFromApi();
+1206         }
+1207         catch (Exception ex) when (ex is JSException or TaskCanceledException or InvalidOperationException or HttpRequestException)
+1208         { enrollmentError = "Η ασφαλής επαναφορά δεν ολοκληρώθηκε. Ανανεώστε τη σελίδα· μην δημιουργήσετε νέα συμμετοχή."; }
+1209         finally { restoringSession = false; StateHasChanged(); }
+1210     }
+1211 
+1212     private async Task EndParticipantAccess()
+1213     {
+1214         await using var module = await JSRuntime.InvokeAsync<IJSObjectReference>("import", "./js/interview-chat.js?v=5");
+1215         if (!await module.InvokeAsync<bool>("revokeParticipant"))
+1216             actionError = "Δεν επιβεβαιώθηκε η λήξη πρόσβασης. Δοκιμάστε ξανά.";
+1217     }
+1218 
+1219 }

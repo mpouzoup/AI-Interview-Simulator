@@ -1,0 +1,32 @@
+.interview-actions {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
+    width: 100%;
+    min-width: 0;
+}
+
+.answer-composer {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+    width: 100%;
+}
+
+.answer-composer ::deep .answer-composer__input {
+    width: 100%;
+    min-width: 0;
+}
+
+@media (max-width: 600px) {
+    .answer-composer {
+        align-items: stretch;
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .answer-composer ::deep .answer-composer__send {
+        justify-self: end;
+    }
+}

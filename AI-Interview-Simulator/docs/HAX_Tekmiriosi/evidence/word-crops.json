@@ -1,0 +1,123 @@
+[
+  {
+    "id": "S01",
+    "original": "screenshots/S01_instructions_consent.png",
+    "box": [
+      85,
+      80,
+      1015,
+      990
+    ],
+    "derived": "evidence/word-figures/S01.png"
+  },
+  {
+    "id": "S02",
+    "original": "screenshots/S02_A_question_invocation.png",
+    "box": [
+      85,
+      80,
+      1015,
+      840
+    ],
+    "derived": "evidence/word-figures/S02.png"
+  },
+  {
+    "id": "S03",
+    "original": "screenshots/S03_A_contextual_feedback.png",
+    "box": [
+      85,
+      80,
+      1015,
+      820
+    ],
+    "derived": "evidence/word-figures/S03.png"
+  },
+  {
+    "id": "S04",
+    "original": "screenshots/S04_A_revision_editor.png",
+    "box": [
+      85,
+      80,
+      1015,
+      930
+    ],
+    "derived": "evidence/word-figures/S04.png"
+  },
+  {
+    "id": "S05",
+    "original": "screenshots/S05_A_second_feedback.png",
+    "box": [
+      85,
+      80,
+      1015,
+      775
+    ],
+    "derived": "evidence/word-figures/S05.png"
+  },
+  {
+    "id": "S06",
+    "original": "screenshots/S06_A_refresh_recovery.png",
+    "box": [
+      85,
+      80,
+      1015,
+      775
+    ],
+    "derived": "evidence/word-figures/S06.png"
+  },
+  {
+    "id": "S07",
+    "original": "screenshots/S07_completion.png",
+    "box": [
+      85,
+      80,
+      1015,
+      785
+    ],
+    "derived": "evidence/word-figures/S07.png"
+  },
+  {
+    "id": "S08",
+    "original": "screenshots/S08_A_uncertain_fallback.png",
+    "box": [
+      85,
+      80,
+      1015,
+      820
+    ],
+    "derived": "evidence/word-figures/S08.png"
+  },
+  {
+    "id": "S09",
+    "original": "screenshots/S09_B_stub_feedback.png",
+    "box": [
+      85,
+      80,
+      1015,
+      820
+    ],
+    "derived": "evidence/word-figures/S09.png"
+  },
+  {
+    "id": "S10",
+    "original": "screenshots/S10_B_failure_retry.png",
+    "box": [
+      85,
+      80,
+      1015,
+      825
+    ],
+    "derived": "evidence/word-figures/S10.png"
+  },
+  {
+    "id": "S11",
+    "original": "screenshots/S11_B_retry_success.png",
+    "box": [
+      85,
+      80,
+      1015,
+      775
+    ],
+    "derived": "evidence/word-figures/S11.png"
+  }
+]

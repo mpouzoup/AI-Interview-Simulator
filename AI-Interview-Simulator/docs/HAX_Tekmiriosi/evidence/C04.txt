@@ -1,0 +1,37 @@
+AIInterviewSimulator.Client/Pages/Home.razor
+0790             return;
+0791 
+0792         if (awaitingDisplayAck) return;
+0793         pendingDecision ??= true;
+0794         actionError = null;
+0795         isActionLoading = true;
+0796         try
+0797         {
+0798             if (flowVersion >= 2) pendingDecisionTiming ??= await CaptureBrowserTiming("decision");
+0799             var decisionRequest = new
+0800             {
+0801                 timing = pendingDecisionTiming,
+0802                 choseToRevise = true
+0803             };
+0804 
+0805             var response = await Http.PutAsJsonAsync(
+0806                 $"{ApiBaseUrl}/answers/{currentAnswerId}/decision",
+0807                 decisionRequest);
+0808 
+0809             response.EnsureSuccessStatusCode();
+0810             pendingDecision = null;
+0811             pendingDecisionTiming = null;
+0812 
+0813             userInput = originalAnswerText;
+0814             interviewState = InterviewUiState.Revising;
+0815 
+0816             StateHasChanged();
+0817         }
+0818         catch (Exception ex)
+0819         {
+0820             actionError = "Δεν μπορέσαμε να επιβεβαιώσουμε την αποθήκευση της επιλογής σας. Δοκιμάστε ξανά την ίδια ενέργεια.";
+0821             Console.WriteLine($"Error choosing revision: {ex.Message}");
+0822         }
+0823         finally
+0824         {
+0825             isActionLoading = false;

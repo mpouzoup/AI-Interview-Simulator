@@ -1,0 +1,80 @@
+AIInterviewSimulator.Client/Pages/StudyQuestionnaires.razor
+0001 @inject HttpClient Http
+0002 
+0003 @if (loading)
+0004 {
+0005     <MudProgressCircular Indeterminate="true" />
+0006 }
+0007 else if (!string.IsNullOrWhiteSpace(error))
+0008 {
+0009     <MudAlert Severity="Severity.Error">@error</MudAlert>
+0010     <MudButton OnClick="Load">Επανάληψη ανάκτησης</MudButton>
+0011 }
+0012 else
+0013 {
+0014     @foreach (var form in forms.Where(f => f.CompletedAt == null))
+0015     {
+0016         <MudPaper Class="pa-4 mb-4">
+0017             <MudText Typo="Typo.h6">@form.Title</MudText>
+0018             <MudText Style="white-space: pre-wrap">@form.Instructions</MudText>
+0019             @foreach (var item in form.Items)
+0020             {
+0021                 <MudNumericField T="double?" Label="@item.Text" Value="@Value(form.Id, item.Code)"
+0022                     ValueChanged="@(value => SetValue(form.Id, item.Code, value))" Min="@item.Minimum" Max="@item.Maximum"
+0023                     Step="@item.Step" Required="true" Disabled="@(saving || pending.ContainsKey(form.Id))" />
+0024             }
+0025             <MudButton OnClick="@(() => Submit(form))" Disabled="@(saving || form.Items.Any(i => Value(form.Id, i.Code) == null))">Υποβολή ερωτηματολογίου</MudButton>
+0026         </MudPaper>
+0027     }
+0028     @if (forms.All(f => f.CompletedAt != null || !f.Required))
+0029     {
+0030         <MudButton OnClick="@(() => OnCompleted.InvokeAsync())">Συνέχεια</MudButton>
+0031     }
+0032 }
+0033 
+0034 @code {
+0035     [Parameter] public Guid SessionId { get; set; }
+0036     [Parameter] public string Phase { get; set; } = "";
+0037     [Parameter] public EventCallback OnCompleted { get; set; }
+0038     private bool loading;
+0039     private bool saving;
+0040     private string? error;
+0041     private List<FormDefinition> forms = new();
+0042     private readonly Dictionary<(Guid, string), double?> values = new();
+0043     private readonly Dictionary<Guid, object> pending = new();
+0044     private (Guid, string) loaded;
+0045     private sealed class Item { public string Code { get; set; } = ""; public string Text { get; set; } = ""; public double Minimum { get; set; } public double Maximum { get; set; } public double Step { get; set; } }
+0046     private sealed class FormDefinition { public Guid Id { get; set; } public string Title { get; set; } = ""; public string Instructions { get; set; } = ""; public bool Required { get; set; } public DateTime? CompletedAt { get; set; } public List<Item> Items { get; set; } = new(); }
+0047     protected override async Task OnParametersSetAsync()
+0048     {
+0049         if (loaded != (SessionId, Phase)) { loaded = (SessionId, Phase); values.Clear(); pending.Clear(); await Load(); }
+0050     }
+0051     private double? Value(Guid id, string code) => values.GetValueOrDefault((id, code));
+0052     private void SetValue(Guid id, string code, double? value) => values[(id, code)] = value;
+0053     private async Task Load()
+0054     {
+0055         loading = true; error = null;
+0056         try
+0057         {
+0058             forms = await Http.GetFromJsonAsync<List<FormDefinition>>($"api/Interview/sessions/{SessionId}/questionnaires/{Phase}") ?? new();
+0059         }
+0060         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException) { error = "Δεν ολοκληρώθηκε η ανάκτηση. Οι ήδη αποθηκευμένες απαντήσεις διατηρούνται."; }
+0061         finally { loading = false; }
+0062     }
+0063     private async Task Submit(FormDefinition form)
+0064     {
+0065         if (saving) return;
+0066         saving = true;
+0067         try
+0068         {
+0069             if (!pending.ContainsKey(form.Id)) pending[form.Id] = new { submissionId = Guid.NewGuid(),
+0070                 answers = form.Items.Select(i => new { itemCode = i.Code, value = Value(form.Id, i.Code) }).ToArray() };
+0071             using var response = await Http.PutAsJsonAsync($"api/Interview/questionnaires/{form.Id}", pending[form.Id]);
+0072             response.EnsureSuccessStatusCode();
+0073             pending.Remove(form.Id);
+0074             await Load();
+0075         }
+0076         catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException) { error = "Η υποβολή δεν επιβεβαιώθηκε. Ανακτήστε τη φόρμα και επαναλάβετε την ίδια υποβολή."; }
+0077         finally { saving = false; }
+0078     }
+0079 }

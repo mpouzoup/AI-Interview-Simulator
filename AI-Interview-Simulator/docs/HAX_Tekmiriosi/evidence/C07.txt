@@ -1,0 +1,59 @@
+AIInterviewSimulator.Engine/Feedback/ScriptFeedbackEngine.cs
+0005 public class ScriptFeedbackEngine : IFeedbackEngine
+0006 {
+0007     public Task<string> GenerateFeedbackAsync(
+0008         int stageNumber,
+0009         UserAnswer answer)
+0010     {
+0011         return Task.FromResult(AnalyzeAnswer(stageNumber, answer.AnswerText).Text);
+0012     }
+0013 
+0014     internal static ScriptFeedbackAnalysis AnalyzeAnswer(int stageNumber, string? answerText)
+0015     {
+0016         if (stageNumber == 3) return AnalyzeProblemAnswer(answerText);
+0017         if (!ScriptFeedbackDefinitions.Stages.TryGetValue(stageNumber, out var stage))
+0018             return new(Array.Empty<CriterionEvidence>(), "unknown", "Ευχαριστούμε για την απάντησή σας.");
+0019         try
+0020         {
+0021             return AnalyzeStage(stageNumber, stage, GreekTextMatcher.Normalize(answerText));
+0022         }
+0023         catch (System.Text.RegularExpressions.RegexMatchTimeoutException)
+0024         {
+0025             return AnalyzeStage(stageNumber, stage, string.Empty);
+0026         }
+0027     }
+0028 
+0029     private static ScriptFeedbackAnalysis AnalyzeStage(int stageNumber, ScriptFeedbackDefinitions.Stage stage, string text)
+0030     {
+0031         var criteria = stage.Criteria.Select(c =>
+0032             GreekTextMatcher.Evaluate(c.Id, text, c.Patterns, c.Denial, c.AllowIntent)
+0033                 with { Required = c.Required }).ToArray();
+0034         var feedback = ScriptFeedbackDefinitions.Select(stageNumber, stage, criteria);
+0035         return new(Array.AsReadOnly(criteria), feedback.Id, feedback.Text);
+0036     }
+0037 
+0038     internal static ScriptFeedbackAnalysis AnalyzeProblemAnswer(string? answerText)
+0039     {
+0040         try
+0041         {
+0042             return AnalyzeNormalizedProblemAnswer(GreekTextMatcher.Normalize(answerText));
+0043         }
+0044         catch (System.Text.RegularExpressions.RegexMatchTimeoutException)
+0045         {
+0046             // A matcher budget exhaustion must never become a positive inference.
+0047             return AnalyzeNormalizedProblemAnswer(string.Empty);
+0048         }
+0049     }
+0050 
+0051     private static ScriptFeedbackAnalysis AnalyzeNormalizedProblemAnswer(string text)
+0052     {
+0053         CriterionEvidence[] criteria =
+0054         {
+0055             GreekTextMatcher.Evaluate("Problem", text, ScriptFeedbackDefinitions.Problem, ScriptFeedbackDefinitions.ProblemDenial),
+0056             GreekTextMatcher.Evaluate("Action", text, ScriptFeedbackDefinitions.Action, ScriptFeedbackDefinitions.ActionDenial),
+0057             GreekTextMatcher.Evaluate("Result", text, ScriptFeedbackDefinitions.Result, ScriptFeedbackDefinitions.ResultDenial)
+0058         };
+0059         var feedback = ScriptFeedbackDefinitions.Select(criteria);
+0060         return new(Array.AsReadOnly(criteria), feedback.Id, feedback.Text);
+0061     }
+0062 }
